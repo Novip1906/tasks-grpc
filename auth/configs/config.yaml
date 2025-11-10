@@ -1,1 +1,9 @@
 address: ":50050"
+jwt_secret_key: alskdlakdaskdoaskdo
+params:
+  username:
+    min: 3
+    max: 10
+  password:
+    min: 3
+    max: 10

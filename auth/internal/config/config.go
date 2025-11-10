@@ -8,7 +8,19 @@ import (
 )
 
 type Config struct {
-	Address string `yaml:"address"`
+	Address      string `yaml:"address" env-required:"true"`
+	JWTSecretKey string `yaml:"jwt_secret_key" env-required:"true"`
+	Params       Params `yaml:"params"`
+}
+
+type Params struct {
+	Username MinMaxLen `yaml:"username"`
+	Password MinMaxLen `yaml:"password"`
+}
+
+type MinMaxLen struct {
+	Min int `yaml:"min" env-required:"true"`
+	Max int `yaml:"max" env-required:"true"`
 }
 
 func MustLoadConfig() *Config {
