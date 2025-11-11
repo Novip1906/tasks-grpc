@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
+	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"google.golang.org/grpc"
 
 	pb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
@@ -18,7 +19,14 @@ type Server struct {
 
 func NewServer(cfg *config.Config) *Server {
 	gs := grpc.NewServer()
-	authService := service.NewAuthService()
+
+	p := cfg.DB
+	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName)
+	if err != nil {
+		panic(err)
+	}
+
+	authService := service.NewAuthService(cfg, db)
 
 	return &Server{cfg: cfg, gs: gs, authService: authService}
 }

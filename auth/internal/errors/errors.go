@@ -9,4 +9,6 @@ var (
 	ErrInvalidToken      = errors.New("token invalid")
 	ErrExpiredToken      = errors.New("token expired")
 	ErrInternal          = errors.New("internal error")
+
+	ErrDBInternal = errors.New("db internal error")
 )

@@ -21,12 +21,12 @@ type UserStorage interface {
 
 type AuthService struct {
 	pb.UnimplementedAuthServiceServer
-	cfg     *config.Config
-	storage UserStorage
+	cfg *config.Config
+	db  UserStorage
 }
 
-func NewAuthService(config *config.Config, storage UserStorage) *AuthService {
-	return &AuthService{cfg: config, storage: storage}
+func NewAuthService(config *config.Config, db UserStorage) *AuthService {
+	return &AuthService{cfg: config, db: db}
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -35,7 +35,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.InvalidArgument, "Username or pass is invalid")
 	}
 
-	err := s.storage.CheckUser(username, password)
+	err := s.db.CheckUser(username, password)
 
 	if errors.Is(err, appErrors.ErrUserNotFound) {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
@@ -64,7 +64,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, "Password is invalid")
 	}
 
-	err := s.storage.AddUser(username, pass)
+	err := s.db.AddUser(username, pass)
 	if errors.Is(err, appErrors.ErrUserAlreadyExists) {
 		return nil, status.Error(codes.AlreadyExists, err.Error())
 	}

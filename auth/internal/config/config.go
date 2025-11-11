@@ -10,7 +10,16 @@ import (
 type Config struct {
 	Address      string `yaml:"address" env-required:"true"`
 	JWTSecretKey string `yaml:"jwt_secret_key" env-required:"true"`
+	DB           DB     `yaml:"db" env-required:"true"`
 	Params       Params `yaml:"params"`
+}
+
+type DB struct {
+	Host     string `yaml:"host" env-default:"localhost"`
+	Port     string `yaml:"port" env-default:"5431"`
+	User     string `yaml:"user" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
+	DBName   string `yaml:"db_name" env-required:"true"`
 }
 
 type Params struct {
