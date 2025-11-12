@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Novip1906/tasks-grpc/auth/internal/logging"
+	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )

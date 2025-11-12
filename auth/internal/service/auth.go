@@ -9,9 +9,9 @@ import (
 
 	pb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
-	"github.com/Novip1906/tasks-grpc/auth/internal/logging"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
-	"github.com/Novip1906/tasks-grpc/auth/internal/utils"
+	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
+	"github.com/Novip1906/tasks-grpc/auth/pkg/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -112,6 +112,8 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		slog.String("op", "Auth.ValidateToken"),
 		slog.String("token", req.GetToken()),
 	)
+
+	log.Info("token validating attempt")
 
 	if req.GetToken() == "" {
 		log.Error("token empty")

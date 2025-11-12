@@ -5,7 +5,7 @@ import (
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/app"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
-	"github.com/Novip1906/tasks-grpc/auth/internal/logging"
+	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
 )
 
 func main() {

@@ -1,0 +1,15 @@
+address: :50050
+jwt_secret_key: alskdlakdaskdoaskdo
+db:
+  host: db
+  port: 5432
+  user: postgres
+  password: pass
+  db_name: postgres
+params:
+  username:
+    min: 3
+    max: 10
+  password:
+    min: 3
+    max: 10

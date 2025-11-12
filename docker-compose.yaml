@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./auth
+    environment:
+      - CONFIG_PATH=./configs/config.dev.yaml
+    ports:
+      - "50050:50050"
+    networks:
+      - app-network
+    depends_on:
+      - db
+  db:
+    image: postgres
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: pass
+        POSTGRES_DB: postgres
+    networks:
+      - app-network
+    volumes:
+      - db_data:/var/lib/postgresql
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db_data:
