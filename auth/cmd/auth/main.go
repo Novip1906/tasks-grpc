@@ -1,20 +1,22 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/app"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
+	"github.com/Novip1906/tasks-grpc/auth/internal/logging"
 )
 
 func main() {
 	cfg := config.MustLoadConfig()
+	log := logging.SetupLogger(slog.LevelDebug)
 
-	srv := app.NewServer(cfg)
+	srv := app.NewServer(cfg, log)
 
-	log.Println("Starting server at", cfg.Address)
+	log.Info("Starting server at " + cfg.Address)
 	if err := srv.Run(); err != nil {
-		log.Fatal("Error starting a server:", err)
+		logging.Err(err)
 		return
 	}
 }

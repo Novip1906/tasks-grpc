@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log/slog"
 	"net"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
@@ -14,21 +15,22 @@ import (
 type Server struct {
 	cfg         *config.Config
 	gs          *grpc.Server
+	log         *slog.Logger
 	authService *service.AuthService
 }
 
-func NewServer(cfg *config.Config) *Server {
+func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 	gs := grpc.NewServer()
 
 	p := cfg.DB
-	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName)
+	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)
 	if err != nil {
 		panic(err)
 	}
 
-	authService := service.NewAuthService(cfg, db)
+	authService := service.NewAuthService(cfg, log, db)
 
-	return &Server{cfg: cfg, gs: gs, authService: authService}
+	return &Server{cfg: cfg, gs: gs, authService: authService, log: log}
 }
 
 func (s *Server) Run() error {
