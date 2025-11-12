@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	appErrors "github.com/Novip1906/tasks-grpc/auth/internal/errors"
 	"github.com/Novip1906/tasks-grpc/auth/internal/logging"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -66,16 +65,16 @@ func (s *PostgresStorage) CheckUser(username, password string) error {
 	query := "SELECT password FROM users WHERE username=$1"
 	err := s.db.QueryRow(query, username).Scan(&passwordFromDB)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appErrors.ErrUserNotFound
+		return ErrUserNotFound
 	}
 	if err != nil {
 		log.Error("query error", logging.Err(err))
-		return appErrors.ErrDBInternal
+		return ErrDBInternal
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(passwordFromDB), []byte(password))
 	if err != nil {
-		return appErrors.ErrWrongPassword
+		return ErrWrongPassword
 	}
 
 	return nil
@@ -92,20 +91,20 @@ func (s *PostgresStorage) AddUser(username, password string) error {
 	}
 
 	if err := s.CheckUser(username, password); err == nil {
-		return appErrors.ErrUserAlreadyExists
+		return ErrUserAlreadyExists
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCode)
 	if err != nil {
 		log.Error("bcrypt error", logging.Err(err))
-		return appErrors.ErrDBInternal
+		return ErrDBInternal
 	}
 
 	query := "INSERT INTO users (username, password) VALUES ($1, $2)"
 	_, err = s.db.Exec(query, username, hashedPassword)
 	if err != nil {
 		log.Error("query error", logging.Err(err))
-		return appErrors.ErrDBInternal
+		return ErrDBInternal
 	}
 
 	return nil
