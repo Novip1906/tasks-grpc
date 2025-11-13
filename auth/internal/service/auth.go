@@ -36,7 +36,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 	username, password := req.GetUsername(), req.GetPassword()
 
 	log := s.log.With(
-		slog.String("op", "Auth.Login"),
+		slog.String("op", "handlers.Login"),
 		slog.String("username", username),
 	)
 
@@ -77,7 +77,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 	username, pass := req.GetUsername(), req.GetPassword()
 
 	log := s.log.With(
-		slog.String("op", "Auth.Register"),
+		slog.String("op", "handlers.Register"),
 		slog.String("username", username),
 	)
 
@@ -109,7 +109,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
 	log := s.log.With(
-		slog.String("op", "Auth.ValidateToken"),
+		slog.String("op", "handlers.ValidateToken"),
 		slog.String("token", req.GetToken()),
 	)
 
