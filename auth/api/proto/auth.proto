@@ -33,8 +33,7 @@ message ValidateTokenRequest {
 }
 
 message ValidateTokenResponse {
-    string username = 1;
-    int64 exp = 2;
+    int64 userId = 1;
 }
 
 // export PATH=$PATH:$(go env GOPATH)/bin

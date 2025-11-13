@@ -17,7 +17,7 @@ import (
 )
 
 type UserStorage interface {
-	CheckUser(username, password string) error
+	CheckUser(username, password string) (int64, error)
 	AddUser(username, password string) error
 }
 
@@ -47,7 +47,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.InvalidArgument, "Username or pass is invalid")
 	}
 
-	err := s.db.CheckUser(username, password)
+	userId, err := s.db.CheckUser(username, password)
 
 	if errors.Is(err, storage.ErrUserNotFound) {
 		log.Error(err.Error())
@@ -64,7 +64,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 
 	log.Info("user logged")
 
-	token, err := utils.EncodeJWTToken(username, s.cfg.JWTSecretKey)
+	token, err := utils.EncodeJWTToken(userId, s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt error", logging.Err(err))
 		return nil, status.Error(codes.Internal, ErrInternal.Error())
@@ -120,7 +120,7 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		return nil, status.Error(codes.InvalidArgument, "Token is empty")
 	}
 
-	username, exp, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
+	userId, exp, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt decode error", logging.Err(err))
 		return nil, status.Error(codes.Unauthenticated, storage.ErrInvalidToken.Error())
@@ -134,7 +134,6 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	log.Info("token is ok")
 
 	return &pb.ValidateTokenResponse{
-		Username: username,
-		Exp:      exp,
+		UserId: userId,
 	}, nil
 }
