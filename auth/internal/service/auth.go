@@ -135,6 +135,5 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 
 	return &pb.ValidateTokenResponse{
 		UserId: userId,
-		Exp:    exp,
 	}, nil
 }
