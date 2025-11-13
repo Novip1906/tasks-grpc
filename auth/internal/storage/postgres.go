@@ -54,7 +54,7 @@ func (s *PostgresStorage) init() error {
 	return err
 }
 
-func (s *PostgresStorage) CheckUser(username, password string) error {
+func (s *PostgresStorage) CheckUser(username, password string) (userId int64, err error) {
 	log := s.log.With(
 		slog.String("op", "db.CheckUser"),
 		slog.String("username", username),
@@ -62,22 +62,22 @@ func (s *PostgresStorage) CheckUser(username, password string) error {
 
 	var passwordFromDB string
 
-	query := "SELECT password FROM users WHERE username=$1"
-	err := s.db.QueryRow(query, username).Scan(&passwordFromDB)
+	query := "SELECT id, password FROM users WHERE username=$1"
+	err = s.db.QueryRow(query, username).Scan(&userId, &passwordFromDB)
 	if errors.Is(err, sql.ErrNoRows) {
-		return ErrUserNotFound
+		return 0, ErrUserNotFound
 	}
 	if err != nil {
 		log.Error("query error", logging.Err(err))
-		return ErrDBInternal
+		return 0, ErrDBInternal
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(passwordFromDB), []byte(password))
 	if err != nil {
-		return ErrWrongPassword
+		return 0, ErrWrongPassword
 	}
 
-	return nil
+	return userId, nil
 }
 
 func (s *PostgresStorage) AddUser(username, password string) error {
@@ -90,7 +90,7 @@ func (s *PostgresStorage) AddUser(username, password string) error {
 		return errors.New("invalid params")
 	}
 
-	if err := s.CheckUser(username, password); err == nil {
+	if _, err := s.CheckUser(username, password); err == nil {
 		return ErrUserAlreadyExists
 	}
 
