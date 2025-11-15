@@ -56,7 +56,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.Unauthenticated, "Wrong password")
 	}
 	if err != nil {
-		log.Error("db error", "method", "CheckUser", logging.Err(err))
+		log.Error("db error", logging.DbErr("CheckUser", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
@@ -93,7 +93,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.AlreadyExists, "User is already exists")
 	}
 	if err != nil {
-		log.Error("db error", "method", "AddUser", logging.Err(err))
+		log.Error("db error", logging.DbErr("AddUser", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 

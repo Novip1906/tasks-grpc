@@ -13,13 +13,13 @@ func main() {
 	cfg := config.MustLoadConfig()
 	log := logging.SetupLogger(slog.LevelDebug)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 
 	srv := app.NewServer(cfg, log)
 
 	log.Info("starting server", "address", cfg.Address)
 	if err := srv.Run(); err != nil {
-		log.Error(err.Error())
+		log.Error("server run error", logging.Err(err))
 		return
 	}
 }

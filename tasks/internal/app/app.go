@@ -33,8 +33,9 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 
 	authClient := authPb.NewAuthServiceClient(authConn)
 	authInterceptor := interceptors.AuthUnaryInterceptor(authClient, authTimeout, log)
+	loggingInterceptor := interceptors.LoggingInterceptor(log)
 
-	gs := grpc.NewServer(grpc.UnaryInterceptor(authInterceptor))
+	gs := grpc.NewServer(grpc.ChainUnaryInterceptor(loggingInterceptor, authInterceptor))
 
 	p := cfg.DB
 	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)
