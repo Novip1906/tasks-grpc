@@ -16,7 +16,7 @@ func main() {
 
 	log.Info("Starting server at " + cfg.Address)
 	if err := srv.Run(); err != nil {
-		logging.Err(err)
+		log.Error(err.Error())
 		return
 	}
 }
