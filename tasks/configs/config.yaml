@@ -1,0 +1,12 @@
+tasks_address: :50051
+auth_address: :50050
+params:
+  text:
+    min: 3
+    max: 100
+db:
+  host: localhost
+  port: 5431
+  user: postgres
+  password: pass
+  db_name: postgres
