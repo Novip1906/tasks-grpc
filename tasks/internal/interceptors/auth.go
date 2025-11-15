@@ -6,7 +6,7 @@ import (
 	"time"
 
 	authpb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
-	"github.com/Novip1906/tasks-grpc/tasks/internal/models"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/contextkeys"
 	"github.com/Novip1906/tasks-grpc/tasks/pkg/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,13 +22,13 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			log.Error("context error")
-			return nil, status.Error(codes.Unauthenticated, "missing data")
+			return nil, status.Error(codes.Unauthenticated, "Missing data")
 		}
 
 		authHeaders := md.Get("authorization")
 		if len(authHeaders) == 0 {
 			log.Error("auth headers empty")
-			return nil, status.Error(codes.Unauthenticated, "authorization header required")
+			return nil, status.Error(codes.Unauthenticated, "Authorization header required")
 		}
 
 		token := authHeaders[0]
@@ -44,7 +44,10 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 
 		log.Info("token is ok:", slog.Int64("user_id", tokenResp.UserId))
 
-		ctx = context.WithValue(ctx, models.UserIDContextKey, tokenResp.UserId)
+		ctx = contextkeys.WithUserId(ctx, tokenResp.UserId)
+
+		log = contextkeys.GetLogger(ctx).With(slog.Int64("user_id", tokenResp.UserId))
+		ctx = contextkeys.WithLogger(ctx, log)
 
 		return handler(ctx, req)
 	}

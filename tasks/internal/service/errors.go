@@ -1,7 +1,8 @@
 package service
 
-import "errors"
-
 var (
-	ErrInternal = errors.New("internal error")
+	ErrTaskNotFoundMessage  = "Task not found"
+	ErrNotTaskAuthorMessage = "You aren`t the task`s author"
+	ErrInvalidTextMessage   = "Text is invalid"
+	ErrInternalMessage      = "Server internal error"
 )
