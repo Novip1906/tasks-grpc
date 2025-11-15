@@ -59,7 +59,7 @@ func (s *PostgresStorage) CheckUser(username, password string) (userId int64, er
 	query := "SELECT id, password FROM users WHERE username=$1"
 	err = s.db.QueryRow(query, username).Scan(&userId, &passwordFromDB)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, err
+		return 0, ErrUserNotFound
 	}
 	if err != nil {
 		return 0, err
