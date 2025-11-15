@@ -1,7 +1,5 @@
 package service
 
-import "errors"
-
 var (
-	ErrInternal = errors.New("internal error")
+	ErrInternalMessage = "Server internal error"
 )

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/app"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
@@ -12,9 +13,11 @@ func main() {
 	cfg := config.MustLoadConfig()
 	log := logging.SetupLogger(slog.LevelDebug)
 
+	time.Sleep(2 * time.Second)
+
 	srv := app.NewServer(cfg, log)
 
-	log.Info("Starting server at " + cfg.Address)
+	log.Info("starting server", "address", cfg.Address)
 	if err := srv.Run(); err != nil {
 		log.Error(err.Error())
 		return

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
+	"github.com/Novip1906/tasks-grpc/auth/internal/interceptors"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"google.golang.org/grpc"
 
@@ -20,7 +21,9 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config, log *slog.Logger) *Server {
-	gs := grpc.NewServer()
+	gs := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.LoggingInterceptor(log)),
+	)
 
 	p := cfg.DB
 	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)

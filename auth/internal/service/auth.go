@@ -9,6 +9,7 @@ import (
 
 	pb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
+	"github.com/Novip1906/tasks-grpc/auth/internal/contextkeys"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
 	"github.com/Novip1906/tasks-grpc/auth/pkg/utils"
@@ -35,12 +36,9 @@ func NewAuthService(config *config.Config, log *slog.Logger, db UserStorage) *Au
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
 	username, password := req.GetUsername(), req.GetPassword()
 
-	log := s.log.With(
-		slog.String("op", "handlers.Login"),
-		slog.String("username", username),
-	)
+	log := contextkeys.GetLogger(ctx)
 
-	log.Info("login attempt")
+	log.Debug("login attempt")
 
 	if username == "" || password == "" {
 		log.Error("invalid username or password")
@@ -50,24 +48,24 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 	userId, err := s.db.CheckUser(username, password)
 
 	if errors.Is(err, storage.ErrUserNotFound) {
-		log.Error(err.Error())
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		log.Error("user not found", logging.Err(err))
+		return nil, status.Error(codes.Unauthenticated, "User not found")
 	}
 	if errors.Is(err, storage.ErrWrongPassword) {
-		log.Error(err.Error())
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		log.Error("wrong pass", logging.Err(err))
+		return nil, status.Error(codes.Unauthenticated, "Wrong password")
 	}
 	if err != nil {
-		log.Error("db.checkUser", logging.Err(err))
-		return nil, status.Error(codes.Internal, ErrInternal.Error())
+		log.Error("db error", "method", "CheckUser", logging.Err(err))
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
-	log.Info("user logged")
+	log.Info("user logged", "user id", userId)
 
 	token, err := utils.EncodeJWTToken(userId, s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt error", logging.Err(err))
-		return nil, status.Error(codes.Internal, ErrInternal.Error())
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
 	return &pb.LoginResponse{Token: token}, nil
@@ -76,12 +74,9 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	username, pass := req.GetUsername(), req.GetPassword()
 
-	log := s.log.With(
-		slog.String("op", "handlers.Register"),
-		slog.String("username", username),
-	)
+	log := contextkeys.GetLogger(ctx)
 
-	log.Info("register attempt")
+	log.Debug("register attempt")
 
 	if len(username) < s.cfg.Params.Username.Min || len(username) > s.cfg.Params.Username.Max {
 		log.Error("invalid username")
@@ -95,11 +90,11 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 	err := s.db.AddUser(username, pass)
 	if errors.Is(err, storage.ErrUserAlreadyExists) {
 		log.Error(err.Error())
-		return nil, status.Error(codes.AlreadyExists, err.Error())
+		return nil, status.Error(codes.AlreadyExists, "User is already exists")
 	}
 	if err != nil {
-		log.Error("db.addUser", logging.Err(err))
-		return nil, status.Error(codes.Internal, ErrInternal.Error())
+		log.Error("db error", "method", "AddUser", logging.Err(err))
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
 	log.Info("user registered")
@@ -108,12 +103,9 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 }
 
 func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
-	log := s.log.With(
-		slog.String("op", "handlers.ValidateToken"),
-		slog.String("token", req.GetToken()),
-	)
+	log := contextkeys.GetLogger(ctx)
 
-	log.Info("token validating attempt")
+	log.Debug("token validating attempt")
 
 	if req.GetToken() == "" {
 		log.Error("token empty")
@@ -123,12 +115,12 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	userId, exp, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt decode error", logging.Err(err))
-		return nil, status.Error(codes.Unauthenticated, storage.ErrInvalidToken.Error())
+		return nil, status.Error(codes.Unauthenticated, "Invalid authorization params")
 	}
 
 	if time.Now().Unix() > exp {
 		log.Error("token expired", logging.Err(err))
-		return nil, status.Error(codes.Unauthenticated, storage.ErrExpiredToken.Error())
+		return nil, status.Error(codes.Unauthenticated, "Expired authorization")
 	}
 
 	log.Info("token is ok")
