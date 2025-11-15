@@ -1,0 +1,12 @@
+tasks_address: :50051
+auth_address: auth:50050
+params:
+  text:
+    min: 3
+    max: 100
+db:
+  host: db
+  port: 5432
+  user: postgres
+  password: pass
+  db_name: postgres

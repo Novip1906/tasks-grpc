@@ -3,9 +3,9 @@ package main
 import (
 	"log/slog"
 
-	"github.com/Novip1906/tasks-grpc/auth/internal/app"
-	"github.com/Novip1906/tasks-grpc/auth/internal/config"
-	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/app"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/config"
+	"github.com/Novip1906/tasks-grpc/tasks/pkg/logging"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 
 	srv := app.NewServer(cfg, log)
 
-	log.Info("Starting server at " + cfg.Address)
+	log.Info("Starting server at " + cfg.TasksAddress)
 	if err := srv.Run(); err != nil {
 		log.Error(err.Error())
 		return

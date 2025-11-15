@@ -1,13 +1,24 @@
 version: '3.8'
 
 services:
-  app:
+  auth:
     build:
       context: ./auth
     environment:
       - CONFIG_PATH=./configs/config.dev.yaml
     ports:
       - "50050:50050"
+    networks:
+      - app-network
+    depends_on:
+      - db
+  tasks:
+    build:
+      context: ./tasks
+    environment:
+      - CONFIG_PATH=./configs/config.dev.yaml
+    ports:
+      - "50051:50051"
     networks:
       - app-network
     depends_on:

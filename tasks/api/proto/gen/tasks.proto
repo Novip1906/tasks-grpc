@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package tasks;
+
+option go_package = "github.com/Novip1906/tasks-grpc/tasks/gen";
+
+service TasksService {
+    rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+    rpc GetTask(GetTaskRequest) returns (Task);
+    rpc GetAllTasks(GetAllTasksRequest) returns (GetAllTasksResponse);
+    rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
+    rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+}
+
+message CreateTaskRequest {
+    string text = 1;
+}
+
+message CreateTaskResponse {
+
+}
+
+message GetTaskRequest {
+    int64 taskId = 1;
+}
+
+message Task {
+    string text = 1;
+    string authorName = 2;
+    int64 createdAt = 3;
+}
+
+message GetAllTasksRequest {
+
+}
+
+message GetAllTasksResponse {
+    repeated Task tasks = 1;
+}
+
+message UpdateTaskRequest {
+    int64 taskId = 1;
+    string newText = 2;
+}
+
+message UpdateTaskResponse {
+
+}
+
+message DeleteTaskRequest {
+    int64 taskId = 1;
+}
+
+message DeleteTaskResponse {
+
+}
+// export PATH=$PATH:$(go env GOPATH)/bin
+// protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative tasks.proto
