@@ -37,7 +37,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 	c.log.Info("Starting Kafka consumers")
 
 	handlers := map[string]MessageHandler{
-		c.config.EmailVerificationTopic: &emailVerificationHandler{emailService: c.emailService},
+		c.config.EmailVerificationTopic: &emailVerificationHandler{emailService: c.emailService, log: c.log},
 	}
 
 	for topic, handler := range handlers {

@@ -12,6 +12,7 @@ import (
 
 type emailVerificationHandler struct {
 	emailService *email.EmailSenderService
+	log          *slog.Logger
 }
 
 func (h *emailVerificationHandler) HandleMessage(ctx context.Context, message []byte) error {
@@ -20,6 +21,6 @@ func (h *emailVerificationHandler) HandleMessage(ctx context.Context, message []
 		return fmt.Errorf("unmarshal verification message: %w", err)
 	}
 
-	slog.Info("Received verification email request", "email", verificationMsg.Email)
+	h.log.Info("Received verification email request", "email", verificationMsg.Email)
 	return h.emailService.SendVerificationEmail(verificationMsg)
 }
