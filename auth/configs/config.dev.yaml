@@ -1,7 +1,7 @@
 address: :50050
 jwt_secret_key: alskdlakdaskdoaskdo
 db:
-  host: db
+  host: postgres
   port: 5432
   user: postgres
   password: pass

@@ -1,0 +1,10 @@
+address: :50052
+smtp:
+  email: novipcs@gmail.com
+  host: smtp.gmail.com
+  port: 587
+kafka:
+  brokers:
+  - kafka:9092
+  group_id: notifications-group
+  email_verification_topic: email-verification
