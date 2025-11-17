@@ -1,11 +1,13 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 	"net"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/Novip1906/tasks-grpc/auth/internal/interceptors"
+	"github.com/Novip1906/tasks-grpc/auth/internal/kafka"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"google.golang.org/grpc"
 
@@ -25,13 +27,18 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 		grpc.UnaryInterceptor(interceptors.LoggingInterceptor(log)),
 	)
 
-	p := cfg.DB
-	db, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)
+	p := cfg.UserDb
+	userDb, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)
 	if err != nil {
 		panic(err)
 	}
 
-	authService := service.NewAuthService(cfg, log, db)
+	codesDb := storage.NewRedisStorage(context.Background(), cfg.CodesDb.Address, cfg.CodesDb.Password, cfg.CodesDb.DB, log, cfg.CodeExp)
+
+	kafkaProcuder := kafka.NewProducer(cfg)
+	emailVerificationProducer := kafka.NewEmailVerificationProducer(kafkaProcuder, cfg.Kafka.VerificationTopic)
+
+	authService := service.NewAuthService(cfg, log, userDb, codesDb, emailVerificationProducer)
 
 	return &Server{cfg: cfg, gs: gs, authService: authService, log: log}
 }

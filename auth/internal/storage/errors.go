@@ -8,4 +8,6 @@ var (
 	ErrWrongPassword     = errors.New("wrong password")
 	ErrInvalidToken      = errors.New("token invalid")
 	ErrExpiredToken      = errors.New("token expired")
+
+	ErrCodeNotFound = errors.New("verification code not found")
 )

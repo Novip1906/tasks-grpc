@@ -2,8 +2,12 @@ package utils
 
 import (
 	"errors"
+	"fmt"
+	"math/rand"
+	"strings"
 	"time"
 
+	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -47,4 +51,21 @@ func DecodeJWTToken(tokenString, JWTSecretKey string) (userId int64, exp int64, 
 	}
 
 	return userId, exp, nil
+}
+
+func GenerateVerificationCode() string {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%04d", rand.Intn(10000))
+}
+
+func UsernameIsValid(username string, cfg *config.Config) bool {
+	return len(username) >= cfg.Params.Username.Min && len(username) <= cfg.Params.Username.Max
+}
+
+func PasswordIsValid(pass string, cfg *config.Config) bool {
+	return len(pass) >= cfg.Params.Password.Min && len(pass) <= cfg.Params.Password.Max
+}
+
+func EmailIsValid(email string, cfg *config.Config) bool {
+	return strings.Contains(email, "@")
 }

@@ -46,6 +46,7 @@ func (s *PostgresStorage) init() error {
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		username TEXT UNIQUE NOT NULL,
+		email TEXT UNIQUE,
 		password TEXT NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
@@ -73,22 +74,34 @@ func (s *PostgresStorage) CheckUser(username, password string) (userId int64, er
 	return userId, nil
 }
 
-func (s *PostgresStorage) AddUser(username, password string) error {
-	if username == "" || password == "" {
-		return errors.New("invalid params")
-	}
-
+func (s *PostgresStorage) AddUser(username, password string) (int64, error) {
 	if _, err := s.CheckUser(username, password); err == nil {
-		return ErrUserAlreadyExists
+		return 0, ErrUserAlreadyExists
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCode)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	query := "INSERT INTO users (username, password) VALUES ($1, $2)"
-	_, err = s.db.Exec(query, username, hashedPassword)
+	res, err := s.db.Exec(query, username, hashedPassword)
+	if err != nil {
+		return 0, err
+	}
+
+	userId, err := res.LastInsertId()
+	if err != nil {
+		return 0, nil
+	}
+
+	return userId, nil
+}
+
+func (s *PostgresStorage) SetEmail(userId int64, email string) error {
+	query := "UPDATE users SET email=$1 WHERE id=$2"
+
+	_, err := s.db.Exec(query, email, userId)
 	if err != nil {
 		return err
 	}
