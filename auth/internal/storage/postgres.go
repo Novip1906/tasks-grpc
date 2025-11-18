@@ -54,7 +54,7 @@ func (s *PostgresStorage) init() error {
 	return err
 }
 
-func (s *PostgresStorage) CheckUser(username, password string) (userId int64, err error) {
+func (s *PostgresStorage) CheckUsernamePassword(username, password string) (userId int64, err error) {
 	var passwordFromDB string
 
 	query := "SELECT id, password FROM users WHERE username=$1"
@@ -74,8 +74,18 @@ func (s *PostgresStorage) CheckUser(username, password string) (userId int64, er
 	return userId, nil
 }
 
+func (s *PostgresStorage) CheckEmailExists(email string) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
+	err := s.db.QueryRow(query, email).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
 func (s *PostgresStorage) AddUser(username, password string) (int64, error) {
-	if _, err := s.CheckUser(username, password); err == nil {
+	if _, err := s.CheckUsernamePassword(username, password); err == nil {
 		return 0, ErrUserAlreadyExists
 	}
 
@@ -84,15 +94,12 @@ func (s *PostgresStorage) AddUser(username, password string) (int64, error) {
 		return 0, err
 	}
 
-	query := "INSERT INTO users (username, password) VALUES ($1, $2)"
-	res, err := s.db.Exec(query, username, hashedPassword)
+	query := "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id"
+	var userId int64
+
+	err = s.db.QueryRow(query, username, hashedPassword).Scan(&userId)
 	if err != nil {
 		return 0, err
-	}
-
-	userId, err := res.LastInsertId()
-	if err != nil {
-		return 0, nil
 	}
 
 	return userId, nil
@@ -101,6 +108,7 @@ func (s *PostgresStorage) AddUser(username, password string) (int64, error) {
 func (s *PostgresStorage) SetEmail(userId int64, email string) error {
 	query := "UPDATE users SET email=$1 WHERE id=$2"
 
+	s.log.Debug("set email", "user_id", userId, "email", email)
 	_, err := s.db.Exec(query, email, userId)
 	if err != nil {
 		return err

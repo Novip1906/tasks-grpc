@@ -16,7 +16,7 @@ params:
   password:
     min: 3
     max: 10
-code_exp: 5m
+code_exp: 15m
 kafka:
   brokers:
    - kafka:9092

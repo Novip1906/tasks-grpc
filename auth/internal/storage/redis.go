@@ -53,7 +53,7 @@ func (r *RedisStorage) GetCode(ctx context.Context, email string) (string, int64
 	}
 
 	if len(res) == 0 {
-		return "", 0, fmt.Errorf("code not found for email: %s", email)
+		return "", 0, ErrCodeNotFound
 	}
 
 	code := res["code"]
@@ -63,4 +63,12 @@ func (r *RedisStorage) GetCode(ctx context.Context, email string) (string, int64
 	}
 
 	return code, int64(userId), nil
+}
+
+func (r *RedisStorage) DeleteCode(ctx context.Context, email string) error {
+	count, err := r.client.Del(ctx, email).Result()
+	if count == 0 {
+		return ErrCodeNotFound
+	}
+	return err
 }

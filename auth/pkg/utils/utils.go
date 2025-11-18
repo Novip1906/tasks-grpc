@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/golang-jwt/jwt/v5"
@@ -59,11 +60,13 @@ func GenerateVerificationCode() string {
 }
 
 func UsernameIsValid(username string, cfg *config.Config) bool {
-	return len(username) >= cfg.Params.Username.Min && len(username) <= cfg.Params.Username.Max
+	length := utf8.RuneCountInString(username)
+	return length >= cfg.Params.Username.Min && length <= cfg.Params.Username.Max
 }
 
 func PasswordIsValid(pass string, cfg *config.Config) bool {
-	return len(pass) >= cfg.Params.Password.Min && len(pass) <= cfg.Params.Password.Max
+	length := utf8.RuneCountInString(pass)
+	return length >= cfg.Params.Password.Min && length <= cfg.Params.Password.Max
 }
 
 func EmailIsValid(email string, cfg *config.Config) bool {

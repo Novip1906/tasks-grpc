@@ -20,7 +20,8 @@ import (
 )
 
 type UserStorage interface {
-	CheckUser(username, password string) (int64, error)
+	CheckUsernamePassword(username, password string) (int64, error)
+	CheckEmailExists(email string) (bool, error)
 	AddUser(username, password string) (int64, error)
 	SetEmail(userId int64, email string) error
 }
@@ -28,6 +29,7 @@ type UserStorage interface {
 type CodeStorage interface {
 	SetCode(ctx context.Context, email, code string, userId int64) error
 	GetCode(ctx context.Context, email string) (string, int64, error)
+	DeleteCode(ctx context.Context, email string) error
 }
 
 type AuthService struct {
@@ -35,12 +37,12 @@ type AuthService struct {
 	cfg                  *config.Config
 	log                  *slog.Logger
 	userDb               UserStorage
-	codesDb              CodeStorage
+	codeDb               CodeStorage
 	verificationProducer *kafka.EmailVerificationProducer
 }
 
 func NewAuthService(config *config.Config, log *slog.Logger, userDb UserStorage, codesDb CodeStorage, verProducer *kafka.EmailVerificationProducer) *AuthService {
-	return &AuthService{cfg: config, log: log, userDb: userDb, codesDb: codesDb, verificationProducer: verProducer}
+	return &AuthService{cfg: config, log: log, userDb: userDb, codeDb: codesDb, verificationProducer: verProducer}
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -55,7 +57,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.InvalidArgument, "Username or pass is invalid")
 	}
 
-	userId, err := s.userDb.CheckUser(username, password)
+	userId, err := s.userDb.CheckUsernamePassword(username, password)
 
 	if errors.Is(err, storage.ErrUserNotFound) {
 		log.Error("user not found", logging.Err(err))
@@ -66,7 +68,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.Unauthenticated, "Wrong password")
 	}
 	if err != nil {
-		log.Error("postgres error", logging.DbErr("CheckUser", err))
+		log.Error("userDB error", logging.DbErr("CheckUser", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
@@ -102,19 +104,37 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, "Email is invalid")
 	}
 
+	if _, _, err := s.codeDb.GetCode(ctx, email); err == nil {
+		log.Error("email in codesDB", "email", email)
+		return nil, status.Error(codes.AlreadyExists, "Email is already exists")
+	}
+
+	emailExists, err := s.userDb.CheckEmailExists(email)
+	if err != nil {
+		log.Error("userDB error", logging.DbErr("CheckEmailExists", err))
+	}
+	if emailExists {
+		log.Error("email in userDB", "email", email)
+		return nil, status.Error(codes.AlreadyExists, "Email is already exists")
+	}
+
 	userId, err := s.userDb.AddUser(username, pass)
 	if errors.Is(err, storage.ErrUserAlreadyExists) {
 		log.Error(err.Error())
 		return nil, status.Error(codes.AlreadyExists, "User is already exists")
 	}
 	if err != nil {
-		log.Error("postgres error", logging.DbErr("AddUser", err))
+		log.Error("userDB error", logging.DbErr("AddUser", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
+	if email == "" {
+		return &pb.RegisterResponse{}, nil
+	}
+
 	code := utils.GenerateVerificationCode()
-	if err = s.codesDb.SetCode(ctx, email, code, userId); err != nil {
-		log.Error("redis error", logging.DbErr("SetCode", err))
+	if err = s.codeDb.SetCode(ctx, email, code, userId); err != nil {
+		log.Error("codesDB error", logging.DbErr("SetCode", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
@@ -131,9 +151,9 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		})
 
 		if err != nil {
-			s.log.Error("async kafka error", slog.String("email", email), logging.Err(err))
+			s.log.Error("kafka error", slog.String("email", email), logging.Err(err))
 		} else {
-			s.log.Info("async kafka verification message sent", slog.String("email", email))
+			s.log.Info("kafka verification message sent", slog.String("email", email))
 		}
 	}()
 
@@ -170,16 +190,17 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 
 func (s *AuthService) ValidateVerificationCode(ctx context.Context, req *pb.ValidateCodeRequest) (*pb.ValidateCodeResponse, error) {
 	log := contextkeys.GetLogger(ctx)
+	email := req.GetEmail()
 
 	log.Debug("code validating attempt")
 
-	codeDb, userId, err := s.codesDb.GetCode(ctx, req.Email)
+	codeDb, userId, err := s.codeDb.GetCode(ctx, email)
 	if errors.Is(err, storage.ErrCodeNotFound) {
 		log.Error("email key in redis is empty")
 		return nil, status.Error(codes.NotFound, "Code is expired")
 	}
 	if err != nil {
-		log.Error("redis error", logging.DbErr("GetCode", err))
+		log.Error("codeDB error", logging.DbErr("GetCode", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
@@ -188,9 +209,13 @@ func (s *AuthService) ValidateVerificationCode(ctx context.Context, req *pb.Vali
 		return nil, status.Error(codes.NotFound, "Wrong code")
 	}
 
-	if err = s.userDb.SetEmail(userId, req.Email); err != nil {
-		log.Error("postgres error", logging.DbErr("SetEmail", err))
+	if err = s.userDb.SetEmail(userId, email); err != nil {
+		log.Error("userDB error", logging.DbErr("SetEmail", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
+	}
+
+	if err = s.codeDb.DeleteCode(ctx, email); err != nil {
+		log.Error("codeDB", logging.DbErr("DeleteCode", err))
 	}
 
 	log.Info("code validated")
