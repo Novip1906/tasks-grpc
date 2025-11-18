@@ -6,6 +6,9 @@ db:
   user: postgres
   password: pass
   db_name: postgres
+redis:
+  address: :6379
+  password: ""
 params:
   username:
     min: 3
@@ -13,3 +16,8 @@ params:
   password:
     min: 3
     max: 10
+code_exp: 15m
+kafka:
+  brokers:
+   - kafka:9092
+  topic: email-verification
