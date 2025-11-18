@@ -41,6 +41,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 	}
 
 	for topic, handler := range handlers {
+		c.log.Debug("Creating reader for topic", "topic", topic)
 		reader := c.createReader(topic)
 		c.readers[topic] = reader
 
@@ -59,6 +60,12 @@ func (c *Consumer) createReader(topic string) *kafka.Reader {
 		Topic:       topic,
 		MaxAttempts: 3,
 		MaxWait:     10 * time.Second,
+		Logger: kafka.LoggerFunc(func(msg string, args ...interface{}) {
+			c.log.Debug("[KAFKA] "+msg, args...)
+		}),
+		ErrorLogger: kafka.LoggerFunc(func(msg string, args ...interface{}) {
+			c.log.Error("[KAFKA-ERROR] "+msg, args...)
+		}),
 	})
 }
 
@@ -72,6 +79,7 @@ func (c *Consumer) consumeTopic(ctx context.Context, topic string, reader *kafka
 			c.log.Info("Stopping consumer for topic", "topic", topic)
 			return
 		default:
+			c.log.Debug("waiting for msg")
 			msg, err := reader.ReadMessage(ctx)
 			if err != nil {
 				if ctx.Err() != nil {
