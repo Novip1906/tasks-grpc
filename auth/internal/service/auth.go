@@ -20,9 +20,9 @@ import (
 )
 
 type UserStorage interface {
-	CheckUsernamePassword(username, password string) (int64, error)
+	CheckUsernamePassword(username, password string) (userId int64, email string, err error)
 	CheckEmailExists(email string) (bool, error)
-	AddUser(username, password string) (int64, error)
+	AddUser(username, password, email string) (int64, error)
 	SetEmail(userId int64, email string) error
 }
 
@@ -57,7 +57,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.InvalidArgument, "Username or pass is invalid")
 	}
 
-	userId, err := s.userDb.CheckUsernamePassword(username, password)
+	userId, email, err := s.userDb.CheckUsernamePassword(username, password)
 
 	if errors.Is(err, storage.ErrUserNotFound) {
 		log.Error("user not found", logging.Err(err))
@@ -68,13 +68,13 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.Unauthenticated, "Wrong password")
 	}
 	if err != nil {
-		log.Error("userDB error", logging.DbErr("CheckUser", err))
+		log.Error("userDB error", logging.DbErr("CheckUsernamePassword", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
 	log.Info("user logged", "user id", userId)
 
-	token, err := utils.EncodeJWTToken(userId, s.cfg.JWTSecretKey)
+	token, err := utils.EncodeJWTToken(userId, username, email, s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt error", logging.Err(err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -118,7 +118,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.AlreadyExists, "Email is already exists")
 	}
 
-	userId, err := s.userDb.AddUser(username, pass)
+	userId, err := s.userDb.AddUser(username, pass, "")
 	if errors.Is(err, storage.ErrUserAlreadyExists) {
 		log.Error(err.Error())
 		return nil, status.Error(codes.AlreadyExists, "User is already exists")
@@ -170,13 +170,13 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		return nil, status.Error(codes.InvalidArgument, "Token is empty")
 	}
 
-	userId, exp, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
+	tokenClaims, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt decode error", logging.Err(err))
 		return nil, status.Error(codes.Unauthenticated, "Invalid authorization params")
 	}
 
-	if time.Now().Unix() > exp {
+	if time.Now().Unix() > tokenClaims.ExpiresAt.Unix() {
 		log.Error("token expired", logging.Err(err))
 		return nil, status.Error(codes.Unauthenticated, "Expired authorization")
 	}
@@ -184,7 +184,9 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	log.Info("token is ok")
 
 	return &pb.ValidateTokenResponse{
-		UserId: userId,
+		UserId:   tokenClaims.UserId,
+		Username: tokenClaims.Username,
+		Email:    tokenClaims.Email,
 	}, nil
 }
 
