@@ -90,7 +90,12 @@ func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
-	return &pb.Task{Text: task.Text, AuthorName: task.AuthorName, CreatedAt: task.CreatedAt.Unix()}, nil
+	return &pb.Task{
+		Id:         task.Id,
+		Text:       task.Text,
+		AuthorName: task.AuthorName,
+		CreatedAt:  task.CreatedAt.Unix(),
+	}, nil
 
 }
 
@@ -112,6 +117,7 @@ func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksReque
 	pbTasks := make([]*pb.Task, 0, len(tasks))
 	for _, task := range tasks {
 		pbTask := &pb.Task{
+			Id:         task.Id,
 			Text:       task.Text,
 			AuthorName: task.AuthorName,
 			CreatedAt:  task.CreatedAt.Unix(),
