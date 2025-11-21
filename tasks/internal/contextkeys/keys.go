@@ -8,18 +8,25 @@ import (
 type contextKey string
 
 const (
-	RequestIDKey contextKey = "request_id"
-	LoggerKey    contextKey = "logger"
-	UserIDKey    contextKey = "user_id"
+	RequestIDKey   contextKey = "request_id"
+	LoggerKey      contextKey = "logger"
+	UserIDKey      contextKey = "user_id"
+	TokenClaimsKey contextKey = "token_claims"
 )
 
-func WithUserId(ctx context.Context, userId int64) context.Context {
-	return context.WithValue(ctx, UserIDKey, userId)
+type TokenClaims struct {
+	UserId   int64  `json:"sub"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
 }
 
-func GetUserId(ctx context.Context) (int64, bool) {
-	id, ok := ctx.Value(UserIDKey).(int64)
-	return id, ok
+func WithTokenClaims(ctx context.Context, claims *TokenClaims) context.Context {
+	return context.WithValue(ctx, TokenClaimsKey, claims)
+}
+
+func GetTokenClaims(ctx context.Context) (*TokenClaims, bool) {
+	claims, ok := ctx.Value(TokenClaimsKey).(*TokenClaims)
+	return claims, ok
 }
 
 func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {

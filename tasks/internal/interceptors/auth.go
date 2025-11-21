@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	authpb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
+	authpb "github.com/Novip1906/tasks-grpc/tasks/internal/auth_gen"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/contextkeys"
 	"github.com/Novip1906/tasks-grpc/tasks/pkg/logging"
 	"google.golang.org/grpc"
@@ -39,12 +39,24 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 		tokenResp, err := authClient.ValidateToken(ctxAuth, &authpb.ValidateTokenRequest{Token: token})
 		if err != nil {
 			log.Error("auth request error", logging.Err(err))
-			return nil, status.Error(codes.Unauthenticated, err.Error())
+			return nil, status.Error(codes.Unauthenticated, "Unauthenticated")
 		}
 
-		log.Info("token is ok:", slog.Int64("user_id", tokenResp.UserId))
+		userId, username, email := tokenResp.GetUserId(), tokenResp.GetUsername(), tokenResp.GetEmail()
 
-		ctx = contextkeys.WithUserId(ctx, tokenResp.UserId)
+		log.Info("token is ok:",
+			slog.Int64("user_id", userId),
+			slog.String("email", email),
+			slog.String("username", username),
+		)
+
+		claims := &contextkeys.TokenClaims{
+			UserId:   userId,
+			Email:    email,
+			Username: username,
+		}
+
+		ctx = contextkeys.WithTokenClaims(ctx, claims)
 
 		log = contextkeys.GetLogger(ctx).With(slog.Int64("user_id", tokenResp.UserId))
 		ctx = contextkeys.WithLogger(ctx, log)

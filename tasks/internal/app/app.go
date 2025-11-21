@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	authPb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
 	tasksPb "github.com/Novip1906/tasks-grpc/tasks/api/proto/gen"
+	authPb "github.com/Novip1906/tasks-grpc/tasks/internal/auth_gen"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/service"
 )
 

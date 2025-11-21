@@ -36,7 +36,7 @@ func NewTasksService(config *config.Config, log *slog.Logger, db TasksStorage) *
 }
 
 func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
-	userId, ok := contextkeys.GetUserId(ctx)
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
@@ -53,7 +53,7 @@ func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidTextMessage)
 	}
 
-	err := s.db.CreateTask(userId, text)
+	err := s.db.CreateTask(tokenClaims.UserId, text)
 	if err != nil {
 		log.Error("db error", logging.DbErr("CreateTask", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -66,7 +66,7 @@ func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest
 }
 
 func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.Task, error) {
-	userId, ok := contextkeys.GetUserId(ctx)
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
@@ -76,7 +76,7 @@ func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb
 
 	log.Debug("attempt")
 
-	task, err := s.db.GetTask(userId, taskId)
+	task, err := s.db.GetTask(tokenClaims.UserId, taskId)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -100,7 +100,7 @@ func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb
 }
 
 func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksRequest) (*pb.GetAllTasksResponse, error) {
-	userId, ok := contextkeys.GetUserId(ctx)
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
@@ -108,7 +108,7 @@ func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksReque
 
 	log.Debug("get all tasks attempt")
 
-	tasks, err := s.db.GetAllTasks(userId)
+	tasks, err := s.db.GetAllTasks(tokenClaims.UserId)
 	if err != nil {
 		log.Error("db error", logging.DbErr("GetAllTasks", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -130,7 +130,7 @@ func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksReque
 }
 
 func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.UpdateTaskResponse, error) {
-	userId, ok := contextkeys.GetUserId(ctx)
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
@@ -148,7 +148,7 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidTextMessage)
 	}
 
-	err := s.db.UpdateTask(userId, taskId, newText)
+	err := s.db.UpdateTask(tokenClaims.UserId, taskId, newText)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -168,7 +168,7 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 }
 
 func (s *TasksService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
-	userId, ok := contextkeys.GetUserId(ctx)
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
@@ -178,7 +178,7 @@ func (s *TasksService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest
 
 	log.Debug("attempt")
 
-	err := s.db.DeleteTask(userId, taskId)
+	err := s.db.DeleteTask(tokenClaims.UserId, taskId)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
