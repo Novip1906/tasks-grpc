@@ -66,7 +66,7 @@ func (r *RedisStorage) GetCode(ctx context.Context, email string) (string, int64
 }
 
 func (r *RedisStorage) DeleteCode(ctx context.Context, email string) error {
-	count, err := r.client.Del(ctx, email).Result()
+	count, err := r.client.Del(ctx, emailPrefix+email).Result()
 	if count == 0 {
 		return ErrCodeNotFound
 	}
