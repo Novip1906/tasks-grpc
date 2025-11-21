@@ -3,6 +3,7 @@ package interceptors
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	authpb "github.com/Novip1906/tasks-grpc/tasks/internal/auth_gen"
@@ -18,7 +19,7 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		log := log.With(slog.String("interceptor", "auth"))
 
-		log.Info("begin")
+		log.Debug("begin")
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			log.Error("context error")
@@ -31,7 +32,18 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 			return nil, status.Error(codes.Unauthenticated, "Authorization header required")
 		}
 
-		token := authHeaders[0]
+		authHeader := authHeaders[0]
+		const bearerPrefix = "Bearer "
+		if !strings.HasPrefix(authHeader, bearerPrefix) {
+			log.Error("invalid authorization format", slog.String("header", authHeader))
+			return nil, status.Error(codes.Unauthenticated, "Invalid authorization format. Expected 'Bearer <token>'")
+		}
+
+		token := strings.TrimPrefix(authHeader, bearerPrefix)
+		if token == "" {
+			log.Error("missing token after bearer prefix")
+			return nil, status.Error(codes.Unauthenticated, "Missing token after 'Bearer '")
+		}
 
 		ctxAuth, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
