@@ -74,7 +74,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 
 	log.Info("user logged", "user id", userId)
 
-	token, err := utils.EncodeJWTToken(userId, username, email, s.cfg.JWTSecretKey)
+	token, err := utils.EncodeJWTToken(userId, email, username, s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt error", logging.Err(err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -140,22 +140,20 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 	log.Debug("starting sending kafka verification message")
 
-	go func() {
-		asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		err := s.verificationProducer.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
-			Email:    email,
-			Code:     code,
-			Username: username,
-		})
+	err = s.verificationProducer.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
+		Email:    email,
+		Code:     code,
+		Username: username,
+	})
 
-		if err != nil {
-			s.log.Error("kafka error", slog.String("email", email), logging.Err(err))
-		} else {
-			s.log.Info("kafka verification message sent", slog.String("email", email))
-		}
-	}()
+	if err != nil {
+		log.Error("kafka error", "email", email, logging.Err(err))
+	} else {
+		log.Info("kafka verification message sent", "email", email)
+	}
 
 	return &pb.RegisterResponse{}, nil
 }
