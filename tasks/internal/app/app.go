@@ -7,6 +7,7 @@ import (
 
 	"github.com/Novip1906/tasks-grpc/tasks/internal/config"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/interceptors"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/kafka"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -43,7 +44,9 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 		panic(err)
 	}
 
-	taskService := service.NewTasksService(cfg, log, db)
+	emailProducer := kafka.NewEmailProducer(&cfg.Kafka)
+
+	taskService := service.NewTasksService(cfg, log, db, emailProducer)
 
 	return &Server{cfg: cfg, gs: gs, tasksService: taskService, log: log}
 }

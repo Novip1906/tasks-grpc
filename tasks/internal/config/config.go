@@ -12,6 +12,7 @@ type Config struct {
 	AuthAddress  string `yaml:"auth_address" env-required:"true"`
 	Params       Params `yaml:"params" env-required:"true"`
 	DB           DB     `yaml:"db" env-required:"true"`
+	Kafka        Kafka  `yaml:"kafka" env-required:"true"`
 }
 
 type Params struct {
@@ -29,6 +30,11 @@ type DB struct {
 	User     string `yaml:"user" env-required:"true"`
 	Password string `yaml:"password" env-required:"true"`
 	DBName   string `yaml:"db_name" env-required:"true"`
+}
+
+type Kafka struct {
+	Brokers     []string `yaml:"brokers" env-required:"true"`
+	EventsTopic string   `yaml:"topic" env-required:"true"`
 }
 
 func MustLoadConfig() *Config {

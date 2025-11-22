@@ -10,3 +10,7 @@ db:
   user: postgres
   password: pass
   db_name: postgres
+kafka:
+  brokers:
+   - kafka:9092
+  topic: events

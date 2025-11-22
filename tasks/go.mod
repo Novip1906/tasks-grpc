@@ -6,12 +6,15 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
+	github.com/segmentio/kafka-go v0.4.49
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.6
 )
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
