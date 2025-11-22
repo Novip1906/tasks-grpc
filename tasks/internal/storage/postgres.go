@@ -10,8 +10,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const bcryptCode = 8
-
 type PostgresStorage struct {
 	db  *sql.DB
 	log *slog.Logger
@@ -53,13 +51,13 @@ func (s *PostgresStorage) init() error {
 	return err
 }
 
-func (s *PostgresStorage) CreateTask(userId int64, text string) error {
-	query := "INSERT INTO tasks (text, author_id) VALUES ($1, $2)"
-	_, err := s.db.Exec(query, text, userId)
+func (s *PostgresStorage) CreateTask(userId int64, text string) (id int64, err error) {
+	query := "INSERT INTO tasks (text, author_id) VALUES ($1, $2) RETURNING id"
+	err = s.db.QueryRow(query, text, userId).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return id, nil
 }
 
 func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
@@ -122,35 +120,35 @@ func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
 	return tasks, nil
 }
 
-func (s *PostgresStorage) UpdateTask(userId, taskId int64, newText string) error {
+func (s *PostgresStorage) UpdateTask(userId, taskId int64, newText string) (oldText string, err error) {
 	task, err := s.GetTask(userId, taskId)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if task.Text == newText {
-		return nil
+		return task.Text, nil
 	}
 
 	query := "UPDATE tasks SET text=$1 WHERE id=$2"
 	_, err = s.db.Exec(query, newText, taskId)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return task.Text, nil
 }
 
-func (s *PostgresStorage) DeleteTask(userId, taskId int64) error {
-	_, err := s.GetTask(userId, taskId)
+func (s *PostgresStorage) DeleteTask(userId, taskId int64) (deletedTask *models.Task, err error) {
+	task, err := s.GetTask(userId, taskId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	query := "DELETE FROM tasks WHERE id=$1"
 	_, err = s.db.Exec(query, taskId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return task, nil
 }
