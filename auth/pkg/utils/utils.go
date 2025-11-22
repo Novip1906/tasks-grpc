@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 	"math/rand"
-	"strings"
+	"net/mail"
 	"time"
 	"unicode/utf8"
 
@@ -65,6 +65,7 @@ func PasswordIsValid(pass string, cfg *config.Config) bool {
 	return length >= cfg.Params.Password.Min && length <= cfg.Params.Password.Max
 }
 
-func EmailIsValid(email string, cfg *config.Config) bool {
-	return strings.Contains(email, "@")
+func EmailIsValid(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }

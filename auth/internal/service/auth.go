@@ -99,7 +99,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, "Password is invalid")
 	}
 
-	if !utils.EmailIsValid(email, s.cfg) {
+	if !utils.EmailIsValid(email) {
 		log.Error("invalid email", "email", email)
 		return nil, status.Error(codes.InvalidArgument, "Email is invalid")
 	}
