@@ -3,11 +3,12 @@ package storage
 import "errors"
 
 var (
-	ErrUserNotFound      = errors.New("user not found")
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrWrongPassword     = errors.New("wrong password")
-	ErrInvalidToken      = errors.New("token invalid")
-	ErrExpiredToken      = errors.New("token expired")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrUserAlreadyExists  = errors.New("user already exists")
+	ErrWrongPassword      = errors.New("wrong password")
+	ErrInvalidToken       = errors.New("token invalid")
+	ErrExpiredToken       = errors.New("token expired")
+	ErrEmailAlreadyExists = errors.New("email already exists")
 
 	ErrCodeNotFound = errors.New("verification code not found")
 )

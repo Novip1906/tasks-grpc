@@ -3,9 +3,10 @@ package interceptors
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
-	authpb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
+	authpb "github.com/Novip1906/tasks-grpc/tasks/internal/auth_gen"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/contextkeys"
 	"github.com/Novip1906/tasks-grpc/tasks/pkg/logging"
 	"google.golang.org/grpc"
@@ -18,7 +19,7 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		log := log.With(slog.String("interceptor", "auth"))
 
-		log.Info("begin")
+		log.Debug("begin")
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			log.Error("context error")
@@ -31,7 +32,18 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 			return nil, status.Error(codes.Unauthenticated, "Authorization header required")
 		}
 
-		token := authHeaders[0]
+		authHeader := authHeaders[0]
+		const bearerPrefix = "Bearer "
+		if !strings.HasPrefix(authHeader, bearerPrefix) {
+			log.Error("invalid authorization format", slog.String("header", authHeader))
+			return nil, status.Error(codes.Unauthenticated, "Invalid authorization format. Expected 'Bearer <token>'")
+		}
+
+		token := strings.TrimPrefix(authHeader, bearerPrefix)
+		if token == "" {
+			log.Error("missing token after bearer prefix")
+			return nil, status.Error(codes.Unauthenticated, "Missing token after 'Bearer '")
+		}
 
 		ctxAuth, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -39,12 +51,24 @@ func AuthUnaryInterceptor(authClient authpb.AuthServiceClient, timeout time.Dura
 		tokenResp, err := authClient.ValidateToken(ctxAuth, &authpb.ValidateTokenRequest{Token: token})
 		if err != nil {
 			log.Error("auth request error", logging.Err(err))
-			return nil, status.Error(codes.Unauthenticated, err.Error())
+			return nil, status.Error(codes.Unauthenticated, "Unauthenticated")
 		}
 
-		log.Info("token is ok:", slog.Int64("user_id", tokenResp.UserId))
+		userId, username, email := tokenResp.GetUserId(), tokenResp.GetUsername(), tokenResp.GetEmail()
 
-		ctx = contextkeys.WithUserId(ctx, tokenResp.UserId)
+		log.Info("token is ok:",
+			slog.Int64("user_id", userId),
+			slog.String("email", email),
+			slog.String("username", username),
+		)
+
+		claims := &contextkeys.TokenClaims{
+			UserId:   userId,
+			Email:    email,
+			Username: username,
+		}
+
+		ctx = contextkeys.WithTokenClaims(ctx, claims)
 
 		log = contextkeys.GetLogger(ctx).With(slog.Int64("user_id", tokenResp.UserId))
 		ctx = contextkeys.WithLogger(ctx, log)

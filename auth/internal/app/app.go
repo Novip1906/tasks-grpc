@@ -36,7 +36,7 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 	codesDb := storage.NewRedisStorage(context.Background(), cfg.CodesDb.Address, cfg.CodesDb.Password, cfg.CodesDb.DB, log, cfg.CodeExp)
 
 	kafkaProcuder := kafka.NewProducer(cfg)
-	emailVerificationProducer := kafka.NewEmailVerificationProducer(kafkaProcuder, cfg.Kafka.VerificationTopic)
+	emailVerificationProducer := kafka.NewEmailProducer(kafkaProcuder, cfg.Kafka.VerificationTopic)
 
 	authService := service.NewAuthService(cfg, log, userDb, codesDb, emailVerificationProducer)
 

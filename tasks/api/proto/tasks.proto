@@ -25,9 +25,10 @@ message GetTaskRequest {
 }
 
 message Task {
-    string text = 1;
-    string authorName = 2;
-    int64 createdAt = 3;
+    int64 id = 1;
+    string text = 2;
+    string authorName = 3;
+    int64 createdAt = 4;
 }
 
 message GetAllTasksRequest {

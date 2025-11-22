@@ -3,7 +3,6 @@ module github.com/Novip1906/tasks-grpc/tasks
 go 1.25.1
 
 require (
-	github.com/Novip1906/tasks-grpc/auth v0.0.0-20251113183815-9cddb533519b
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9

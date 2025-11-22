@@ -10,7 +10,6 @@ import (
 	pb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/Novip1906/tasks-grpc/auth/internal/contextkeys"
-	"github.com/Novip1906/tasks-grpc/auth/internal/kafka"
 	"github.com/Novip1906/tasks-grpc/auth/internal/models"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
@@ -20,9 +19,9 @@ import (
 )
 
 type UserStorage interface {
-	CheckUsernamePassword(username, password string) (int64, error)
+	CheckUsernamePassword(username, password string) (userId int64, email string, err error)
 	CheckEmailExists(email string) (bool, error)
-	AddUser(username, password string) (int64, error)
+	AddUser(username, password, email string) (int64, error)
 	SetEmail(userId int64, email string) error
 }
 
@@ -32,17 +31,21 @@ type CodeStorage interface {
 	DeleteCode(ctx context.Context, email string) error
 }
 
-type AuthService struct {
-	pb.UnimplementedAuthServiceServer
-	cfg                  *config.Config
-	log                  *slog.Logger
-	userDb               UserStorage
-	codeDb               CodeStorage
-	verificationProducer *kafka.EmailVerificationProducer
+type EmailSender interface {
+	SendVerificationEmail(ctx context.Context, message *models.EmailVerificationMessage) error
 }
 
-func NewAuthService(config *config.Config, log *slog.Logger, userDb UserStorage, codesDb CodeStorage, verProducer *kafka.EmailVerificationProducer) *AuthService {
-	return &AuthService{cfg: config, log: log, userDb: userDb, codeDb: codesDb, verificationProducer: verProducer}
+type AuthService struct {
+	pb.UnimplementedAuthServiceServer
+	cfg         *config.Config
+	log         *slog.Logger
+	userDb      UserStorage
+	codeDb      CodeStorage
+	emailSender EmailSender
+}
+
+func NewAuthService(config *config.Config, log *slog.Logger, userDb UserStorage, codesDb CodeStorage, verProducer EmailSender) *AuthService {
+	return &AuthService{cfg: config, log: log, userDb: userDb, codeDb: codesDb, emailSender: verProducer}
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -57,7 +60,7 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.InvalidArgument, "Username or pass is invalid")
 	}
 
-	userId, err := s.userDb.CheckUsernamePassword(username, password)
+	userId, email, err := s.userDb.CheckUsernamePassword(username, password)
 
 	if errors.Is(err, storage.ErrUserNotFound) {
 		log.Error("user not found", logging.Err(err))
@@ -68,13 +71,13 @@ func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, status.Error(codes.Unauthenticated, "Wrong password")
 	}
 	if err != nil {
-		log.Error("userDB error", logging.DbErr("CheckUser", err))
+		log.Error("userDB error", logging.DbErr("CheckUsernamePassword", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
 	}
 
 	log.Info("user logged", "user id", userId)
 
-	token, err := utils.EncodeJWTToken(userId, s.cfg.JWTSecretKey)
+	token, err := utils.EncodeJWTToken(userId, email, username, s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt error", logging.Err(err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -99,7 +102,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, "Password is invalid")
 	}
 
-	if !utils.EmailIsValid(email, s.cfg) {
+	if !utils.EmailIsValid(email) {
 		log.Error("invalid email", "email", email)
 		return nil, status.Error(codes.InvalidArgument, "Email is invalid")
 	}
@@ -118,7 +121,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.AlreadyExists, "Email is already exists")
 	}
 
-	userId, err := s.userDb.AddUser(username, pass)
+	userId, err := s.userDb.AddUser(username, pass, "")
 	if errors.Is(err, storage.ErrUserAlreadyExists) {
 		log.Error(err.Error())
 		return nil, status.Error(codes.AlreadyExists, "User is already exists")
@@ -140,22 +143,20 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 	log.Debug("starting sending kafka verification message")
 
-	go func() {
-		asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		err := s.verificationProducer.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
-			Email:    email,
-			Code:     code,
-			Username: username,
-		})
+	err = s.emailSender.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
+		Email:    email,
+		Code:     code,
+		Username: username,
+	})
 
-		if err != nil {
-			s.log.Error("kafka error", slog.String("email", email), logging.Err(err))
-		} else {
-			s.log.Info("kafka verification message sent", slog.String("email", email))
-		}
-	}()
+	if err != nil {
+		log.Error("kafka error", "email", email, logging.Err(err))
+	} else {
+		log.Info("kafka verification message sent", "email", email)
+	}
 
 	return &pb.RegisterResponse{}, nil
 }
@@ -170,13 +171,13 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		return nil, status.Error(codes.InvalidArgument, "Token is empty")
 	}
 
-	userId, exp, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
+	tokenClaims, err := utils.DecodeJWTToken(req.GetToken(), s.cfg.JWTSecretKey)
 	if err != nil {
 		log.Error("jwt decode error", logging.Err(err))
 		return nil, status.Error(codes.Unauthenticated, "Invalid authorization params")
 	}
 
-	if time.Now().Unix() > exp {
+	if time.Now().Unix() > tokenClaims.ExpiresAt.Unix() {
 		log.Error("token expired", logging.Err(err))
 		return nil, status.Error(codes.Unauthenticated, "Expired authorization")
 	}
@@ -184,7 +185,9 @@ func (s *AuthService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	log.Info("token is ok")
 
 	return &pb.ValidateTokenResponse{
-		UserId: userId,
+		UserId:   tokenClaims.UserId,
+		Username: tokenClaims.Username,
+		Email:    tokenClaims.Email,
 	}, nil
 }
 

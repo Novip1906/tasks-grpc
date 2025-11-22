@@ -147,9 +147,10 @@ func (x *GetTaskRequest) GetTaskId() int64 {
 
 type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
-	AuthorName    string                 `protobuf:"bytes,2,opt,name=authorName,proto3" json:"authorName,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,3,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	AuthorName    string                 `protobuf:"bytes,3,opt,name=authorName,proto3" json:"authorName,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,4,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -182,6 +183,13 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
 	return file_tasks_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Task) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
 }
 
 func (x *Task) GetText() string {
@@ -462,13 +470,14 @@ const file_tasks_proto_rawDesc = "" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"\x14\n" +
 	"\x12CreateTaskResponse\"(\n" +
 	"\x0eGetTaskRequest\x12\x16\n" +
-	"\x06taskId\x18\x01 \x01(\x03R\x06taskId\"X\n" +
-	"\x04Task\x12\x12\n" +
-	"\x04text\x18\x01 \x01(\tR\x04text\x12\x1e\n" +
+	"\x06taskId\x18\x01 \x01(\x03R\x06taskId\"h\n" +
+	"\x04Task\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x1e\n" +
 	"\n" +
-	"authorName\x18\x02 \x01(\tR\n" +
+	"authorName\x18\x03 \x01(\tR\n" +
 	"authorName\x12\x1c\n" +
-	"\tcreatedAt\x18\x03 \x01(\x03R\tcreatedAt\"\x14\n" +
+	"\tcreatedAt\x18\x04 \x01(\x03R\tcreatedAt\"\x14\n" +
 	"\x12GetAllTasksRequest\"8\n" +
 	"\x13GetAllTasksResponse\x12!\n" +
 	"\x05tasks\x18\x01 \x03(\v2\v.tasks.TaskR\x05tasks\"E\n" +

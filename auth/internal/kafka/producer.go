@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"time"
 
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/segmentio/kafka-go"
@@ -14,7 +15,11 @@ type Producer struct {
 func NewProducer(cfg *config.Config) *Producer {
 	return &Producer{
 		writer: &kafka.Writer{
-			Addr: kafka.TCP(cfg.Kafka.Brokers...),
+			Addr:         kafka.TCP(cfg.Kafka.Brokers...),
+			BatchSize:    1,
+			BatchTimeout: 10 * time.Millisecond,
+			RequiredAcks: kafka.RequireOne,
+			Async:        false,
 		},
 	}
 }

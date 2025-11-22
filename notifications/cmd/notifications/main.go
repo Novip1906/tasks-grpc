@@ -17,7 +17,7 @@ func main() {
 	cfg := config.MustLoadConfig()
 	log := logging.SetupLogger(slog.LevelDebug)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

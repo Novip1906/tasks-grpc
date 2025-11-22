@@ -64,7 +64,7 @@ func (s *PostgresStorage) CreateTask(userId int64, text string) error {
 
 func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
 	query := `
-        SELECT t.text, u.username, t.created_at, u.id
+        SELECT t.id, t.text, u.username, t.created_at, u.id
         FROM tasks t 
         JOIN users u ON t.author_id = u.id 
         WHERE t.id=$1`
@@ -74,7 +74,7 @@ func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
 		userIdFromDB int64
 	)
 
-	err := s.db.QueryRow(query, taskId).Scan(&task.Text, &task.AuthorName, &task.CreatedAt, &userIdFromDB)
+	err := s.db.QueryRow(query, taskId).Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt, &userIdFromDB)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrTaskNotFound
 	}
@@ -91,7 +91,7 @@ func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
 
 func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
 	query := `
-	SELECT t.text, u.username, t.created_at
+	SELECT t.id, t.text, u.username, t.created_at
 	FROM tasks t 
 	JOIN users u ON t.author_id = u.id 
 	WHERE t.author_id=$1 
@@ -108,7 +108,7 @@ func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
 		var (
 			task models.Task
 		)
-		err := rows.Scan(&task.Text, &task.AuthorName, &task.CreatedAt)
+		err := rows.Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt)
 		if err != nil {
 			return nil, err
 		}

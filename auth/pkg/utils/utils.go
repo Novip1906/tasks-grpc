@@ -1,10 +1,9 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
-	"strings"
+	"net/mail"
 	"time"
 	"unicode/utf8"
 
@@ -12,46 +11,43 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func EncodeJWTToken(userId int64, JWTSecretKey string) (string, error) {
-	payload := jwt.MapClaims{
-		"sub": userId,
-		"exp": time.Now().Add(time.Hour * 72).Unix(),
+type TokenClaims struct {
+	UserId   int64  `json:"sub"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
+
+func EncodeJWTToken(userId int64, email, username, JWTSecretKey string) (string, error) {
+	claims := TokenClaims{
+		UserId:   userId,
+		Email:    email,
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(JWTSecretKey))
 }
 
-func DecodeJWTToken(tokenString, JWTSecretKey string) (userId int64, exp int64, err error) {
-	claims := jwt.MapClaims{}
-
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
+func DecodeJWTToken(tokenString, JWTSecretKey string) (*TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(JWTSecretKey), nil
 	})
+
 	if err != nil {
-		return 0, 0, err
-	}
-	if !token.Valid {
-		return 0, 0, errors.New("invalid token")
+		return nil, err
 	}
 
-	if sub, ok := claims["sub"].(float64); ok {
-		userId = int64(sub)
-	} else {
-		return 0, 0, errors.New("id not found in token")
+	if claims, ok := token.Claims.(*TokenClaims); ok && token.Valid {
+		return claims, nil
 	}
 
-	if expVal, ok := claims["exp"].(float64); ok {
-		exp = int64(expVal)
-	} else {
-		return 0, 0, errors.New("exp not found in token")
-	}
-
-	return userId, exp, nil
+	return nil, fmt.Errorf("invalid token")
 }
 
 func GenerateVerificationCode() string {
@@ -69,6 +65,7 @@ func PasswordIsValid(pass string, cfg *config.Config) bool {
 	return length >= cfg.Params.Password.Min && length <= cfg.Params.Password.Max
 }
 
-func EmailIsValid(email string, cfg *config.Config) bool {
-	return strings.Contains(email, "@")
+func EmailIsValid(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
