@@ -31,6 +31,11 @@ func (s *EmailSenderService) SendVerificationEmail(msg models.EmailVerificationM
 	return s.sendEmail(msg.Email, subject, body)
 }
 
+func (s *EmailSenderService) SendEventEmail(msg models.EventMessage) error {
+	s.log.Debug("received", "TEXT", msg.TaskText)
+	return nil
+}
+
 func (s *EmailSenderService) sendEmail(to, subject, body string) error {
 	auth := smtp.PlainAuth("", s.smtpConfig.Email, s.smtpConfig.Password, s.smtpConfig.Host)
 
