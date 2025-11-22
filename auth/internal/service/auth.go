@@ -10,7 +10,6 @@ import (
 	pb "github.com/Novip1906/tasks-grpc/auth/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/auth/internal/config"
 	"github.com/Novip1906/tasks-grpc/auth/internal/contextkeys"
-	"github.com/Novip1906/tasks-grpc/auth/internal/kafka"
 	"github.com/Novip1906/tasks-grpc/auth/internal/models"
 	"github.com/Novip1906/tasks-grpc/auth/internal/storage"
 	"github.com/Novip1906/tasks-grpc/auth/pkg/logging"
@@ -32,17 +31,21 @@ type CodeStorage interface {
 	DeleteCode(ctx context.Context, email string) error
 }
 
-type AuthService struct {
-	pb.UnimplementedAuthServiceServer
-	cfg                  *config.Config
-	log                  *slog.Logger
-	userDb               UserStorage
-	codeDb               CodeStorage
-	verificationProducer *kafka.EmailVerificationProducer
+type EmailSender interface {
+	SendVerificationEmail(ctx context.Context, message *models.EmailVerificationMessage) error
 }
 
-func NewAuthService(config *config.Config, log *slog.Logger, userDb UserStorage, codesDb CodeStorage, verProducer *kafka.EmailVerificationProducer) *AuthService {
-	return &AuthService{cfg: config, log: log, userDb: userDb, codeDb: codesDb, verificationProducer: verProducer}
+type AuthService struct {
+	pb.UnimplementedAuthServiceServer
+	cfg         *config.Config
+	log         *slog.Logger
+	userDb      UserStorage
+	codeDb      CodeStorage
+	emailSender EmailSender
+}
+
+func NewAuthService(config *config.Config, log *slog.Logger, userDb UserStorage, codesDb CodeStorage, verProducer EmailSender) *AuthService {
+	return &AuthService{cfg: config, log: log, userDb: userDb, codeDb: codesDb, emailSender: verProducer}
 }
 
 func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -143,7 +146,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = s.verificationProducer.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
+	err = s.emailSender.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
 		Email:    email,
 		Code:     code,
 		Username: username,

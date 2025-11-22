@@ -8,19 +8,19 @@ import (
 	"github.com/Novip1906/tasks-grpc/auth/internal/models"
 )
 
-type EmailVerificationProducer struct {
-	producer *Producer
-	topic    string
+type EmailProducer struct {
+	producer          *Producer
+	verificationTopic string
 }
 
-func NewEmailVerificationProducer(producer *Producer, topic string) *EmailVerificationProducer {
-	return &EmailVerificationProducer{
-		producer: producer,
-		topic:    topic,
+func NewEmailProducer(producer *Producer, verificationTopic string) *EmailProducer {
+	return &EmailProducer{
+		producer:          producer,
+		verificationTopic: verificationTopic,
 	}
 }
 
-func (e *EmailVerificationProducer) SendVerificationEmail(ctx context.Context, message *models.EmailVerificationMessage) error {
+func (e *EmailProducer) SendVerificationEmail(ctx context.Context, message *models.EmailVerificationMessage) error {
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal email verification message: %w", err)
@@ -28,7 +28,7 @@ func (e *EmailVerificationProducer) SendVerificationEmail(ctx context.Context, m
 
 	err = e.producer.SendMessage(
 		ctx,
-		e.topic,
+		e.verificationTopic,
 		[]byte(message.Email),
 		jsonData,
 	)
