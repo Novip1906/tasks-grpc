@@ -43,8 +43,8 @@ type MinMaxLen struct {
 }
 
 type Kafka struct {
-	Brokers           []string `yaml:"brokers" env-required="true"`
-	VerificationTopic string   `yaml:"topic" env-required="true"`
+	Brokers           []string `yaml:"brokers" env-required:"true"`
+	VerificationTopic string   `yaml:"topic" env-required:"true"`
 }
 
 func MustLoadConfig() *Config {
