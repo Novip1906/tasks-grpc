@@ -41,3 +41,7 @@ func (e *EmailProducer) SendEventEmail(ctx context.Context, message *models.Even
 
 	return nil
 }
+
+func (e *EmailProducer) Close() {
+	e.producer.Close()
+}

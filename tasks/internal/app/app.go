@@ -18,10 +18,11 @@ import (
 )
 
 type Server struct {
-	cfg          *config.Config
-	gs           *grpc.Server
-	log          *slog.Logger
-	tasksService *service.TasksService
+	cfg           *config.Config
+	gs            *grpc.Server
+	log           *slog.Logger
+	tasksService  *service.TasksService
+	emailProducer *kafka.EmailProducer
 }
 
 var authTimeout = 3 * time.Second
@@ -48,7 +49,7 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 
 	taskService := service.NewTasksService(cfg, log, db, emailProducer)
 
-	return &Server{cfg: cfg, gs: gs, tasksService: taskService, log: log}
+	return &Server{cfg: cfg, gs: gs, tasksService: taskService, log: log, emailProducer: emailProducer}
 }
 
 func (s *Server) Run() error {
@@ -60,4 +61,8 @@ func (s *Server) Run() error {
 	tasksPb.RegisterTasksServiceServer(s.gs, s.tasksService)
 
 	return s.gs.Serve(ln)
+}
+
+func (s *Server) Close() {
+	s.emailProducer.Close()
 }

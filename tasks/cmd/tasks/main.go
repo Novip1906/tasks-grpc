@@ -16,6 +16,7 @@ func main() {
 	time.Sleep(time.Second)
 
 	srv := app.NewServer(cfg, log)
+	defer srv.Close()
 
 	log.Info("starting server", "address", cfg.TasksAddress)
 	if err := srv.Run(); err != nil {
