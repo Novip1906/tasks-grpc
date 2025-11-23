@@ -9,6 +9,7 @@ service AuthService {
     rpc Register(RegisterRequest) returns (RegisterResponse);
     rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
     rpc ValidateVerificationCode(ValidateCodeRequest) returns (ValidateCodeResponse);
+    rpc ChangeEmail(ChangeEmailRequest) returns (ChangeEmailResponse);
 }
 
 message LoginRequest {
@@ -44,6 +45,12 @@ message ValidateCodeRequest {
 }
 
 message ValidateCodeResponse {}
+
+message ChangeEmailRequest {
+    string newEmail = 1;
+}
+
+message ChangeEmailResponse {}
 
 // export PATH=$PATH:$(go env GOPATH)/bin
 // protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative auth.proto

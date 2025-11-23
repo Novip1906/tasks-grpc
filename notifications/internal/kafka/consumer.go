@@ -38,6 +38,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 	handlers := map[string]MessageHandler{
 		c.config.EmailVerificationTopic: &emailVerificationHandler{emailService: c.emailService, log: c.log},
+		c.config.EventsTopic:            &eventsHandler{emailService: c.emailService, log: c.log},
 	}
 
 	for topic, handler := range handlers {

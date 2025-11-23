@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"sync"
 
 	"github.com/Novip1906/tasks-grpc/notifications/internal/config"
 	"github.com/Novip1906/tasks-grpc/notifications/internal/email"
@@ -14,14 +13,16 @@ type Server struct {
 	cfg      *config.Config
 	log      *slog.Logger
 	consumer *kafka.Consumer
-	wg       sync.WaitGroup
 }
 
-func NewServer(cfg *config.Config, log *slog.Logger) *Server {
-	emailService := email.NewEmailSender(&cfg.SMTP, log)
+func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
+	emailService, err := email.NewEmailSender(&cfg.SMTP, log)
+	if err != nil {
+		return nil, err
+	}
 
 	consumer := kafka.NewConsumer(cfg.Kafka, emailService, log)
-	return &Server{cfg: cfg, log: log, consumer: consumer}
+	return &Server{cfg: cfg, log: log, consumer: consumer}, err
 }
 
 func (s *Server) Run(ctx context.Context) error {

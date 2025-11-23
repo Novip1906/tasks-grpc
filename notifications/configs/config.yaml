@@ -8,3 +8,4 @@ kafka:
   - kafka:9092
   group_id: notifications-group
   email_verification_topic: email-verification
+  events_topic: events

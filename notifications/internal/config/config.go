@@ -24,6 +24,7 @@ type Kafka struct {
 	Brokers                []string `yaml:"brokers" env-required:"true"`
 	GroupId                string   `yaml:"group_id" env-required:"true"`
 	EmailVerificationTopic string   `yaml:"email_verification_topic" env-default:"email-verification"`
+	EventsTopic            string   `yaml:"events_topic" env-default:"events"`
 }
 
 func MustLoadConfig() *Config {

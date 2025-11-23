@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
+	"time"
 
 	pb "github.com/Novip1906/tasks-grpc/tasks/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/config"
@@ -17,22 +18,27 @@ import (
 )
 
 type TasksStorage interface {
-	CreateTask(userId int64, text string) error
+	CreateTask(userId int64, text string) (id int64, err error)
 	GetTask(userId int64, taskId int64) (*models.Task, error)
 	GetAllTasks(userId int64) ([]*models.Task, error)
-	UpdateTask(userId int64, taskId int64, newText string) error
-	DeleteTask(userId int64, taskId int64) error
+	UpdateTask(userId, taskId int64, newText string) (oldText string, err error)
+	DeleteTask(userId, taskId int64) (deletedTask *models.Task, err error)
+}
+
+type EmailSender interface {
+	SendEventEmail(ctx context.Context, message *models.EventMessage) error
 }
 
 type TasksService struct {
 	pb.UnimplementedTasksServiceServer
-	cfg *config.Config
-	log *slog.Logger
-	db  TasksStorage
+	cfg         *config.Config
+	log         *slog.Logger
+	db          TasksStorage
+	emailSender EmailSender
 }
 
-func NewTasksService(config *config.Config, log *slog.Logger, db TasksStorage) *TasksService {
-	return &TasksService{cfg: config, log: log, db: db}
+func NewTasksService(config *config.Config, log *slog.Logger, db TasksStorage, emailSender EmailSender) *TasksService {
+	return &TasksService{cfg: config, log: log, db: db, emailSender: emailSender}
 }
 
 func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
@@ -53,7 +59,7 @@ func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidTextMessage)
 	}
 
-	err := s.db.CreateTask(tokenClaims.UserId, text)
+	taskId, err := s.db.CreateTask(tokenClaims.UserId, text)
 	if err != nil {
 		log.Error("db error", logging.DbErr("CreateTask", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -61,7 +67,34 @@ func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest
 
 	log.Info("task created")
 
-	return &pb.CreateTaskResponse{}, nil
+	task := pb.Task{
+		Id:         taskId,
+		Text:       text,
+		AuthorName: tokenClaims.Username,
+		CreatedAt:  time.Now().Unix(),
+	}
+
+	if tokenClaims.Email == "" {
+		return &pb.CreateTaskResponse{Task: &task}, nil
+	}
+
+	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = s.emailSender.SendEventEmail(asyncCtx, &models.EventMessage{
+		Email:    tokenClaims.Email,
+		Username: tokenClaims.Username,
+		Type:     "create",
+		TaskText: text,
+	})
+
+	if err != nil {
+		log.Error("kafka error", "email", tokenClaims.Email, logging.Err(err))
+	} else {
+		log.Info("kafka event message sent", "email", tokenClaims.Email, "event-type", "create")
+	}
+
+	return &pb.CreateTaskResponse{Task: &task}, nil
 
 }
 
@@ -148,7 +181,7 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidTextMessage)
 	}
 
-	err := s.db.UpdateTask(tokenClaims.UserId, taskId, newText)
+	oldText, err := s.db.UpdateTask(tokenClaims.UserId, taskId, newText)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -164,6 +197,27 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 
 	log.Info("task updated")
 
+	if tokenClaims.Email == "" {
+		return &pb.UpdateTaskResponse{}, nil
+	}
+
+	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = s.emailSender.SendEventEmail(asyncCtx, &models.EventMessage{
+		Email:       tokenClaims.Email,
+		Username:    tokenClaims.Username,
+		Type:        "update",
+		TaskText:    newText,
+		TaskOldText: oldText,
+	})
+
+	if err != nil {
+		log.Error("kafka error", "email", tokenClaims.Email, logging.Err(err))
+	} else {
+		log.Info("kafka event message sent", "email", tokenClaims.Email, "event-type", "update")
+	}
+
 	return &pb.UpdateTaskResponse{}, nil
 }
 
@@ -178,7 +232,7 @@ func (s *TasksService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest
 
 	log.Debug("attempt")
 
-	err := s.db.DeleteTask(tokenClaims.UserId, taskId)
+	task, err := s.db.DeleteTask(tokenClaims.UserId, taskId)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -194,7 +248,32 @@ func (s *TasksService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest
 
 	log.Info("task deleted")
 
-	return &pb.DeleteTaskResponse{}, nil
+	responseTask := pb.Task{
+		Id:         task.Id,
+		Text:       task.Text,
+		AuthorName: task.AuthorName,
+		CreatedAt:  task.CreatedAt.Unix(),
+	}
+
+	if tokenClaims.Email != "" {
+		asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		err = s.emailSender.SendEventEmail(asyncCtx, &models.EventMessage{
+			Email:    tokenClaims.Email,
+			Username: tokenClaims.Username,
+			Type:     "delete",
+			TaskText: task.Text,
+		})
+
+		if err != nil {
+			log.Error("kafka error", "email", tokenClaims.Email, logging.Err(err))
+		} else {
+			log.Info("kafka event message sent", "email", tokenClaims.Email, "event-type", "delete")
+		}
+	}
+
+	return &pb.DeleteTaskResponse{Task: &responseTask}, nil
 }
 
 func textIsValid(text string, cfg *config.Config) bool {

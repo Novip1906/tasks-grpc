@@ -143,7 +143,7 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 	log.Debug("starting sending kafka verification message")
 
-	asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	asyncCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	err = s.emailSender.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
@@ -224,4 +224,57 @@ func (s *AuthService) ValidateVerificationCode(ctx context.Context, req *pb.Vali
 	log.Info("code validated")
 
 	return &pb.ValidateCodeResponse{}, nil
+}
+
+func (s *AuthService) ChangeEmail(ctx context.Context, req *pb.ChangeEmailRequest) (*pb.ChangeEmailResponse, error) {
+	log := contextkeys.GetLogger(ctx)
+
+	claims, ok := contextkeys.GetTokenClaims(ctx)
+	if !ok {
+		log.Error("token claims parse error")
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
+	}
+
+	userId := claims.UserId
+	newEmail := req.GetNewEmail()
+	username := claims.Username
+
+	if !utils.EmailIsValid(newEmail) {
+		log.Error("invalid email", "email", newEmail)
+		return nil, status.Error(codes.InvalidArgument, "Email is invalid")
+	}
+
+	if newEmail == claims.Email {
+		log.Error("email is the same", "emal", newEmail)
+		return nil, status.Error(codes.OK, "Email is the same")
+	}
+
+	if _, _, err := s.codeDb.GetCode(ctx, newEmail); err == nil {
+		log.Error("email in codesDB", "email", newEmail)
+		return nil, status.Error(codes.AlreadyExists, "Email is already exists")
+	}
+
+	code := utils.GenerateVerificationCode()
+	err := s.codeDb.SetCode(ctx, newEmail, code, userId)
+	if err != nil {
+		log.Error("codesDB error", logging.DbErr("SetCode", err))
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
+	}
+
+	asyncCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err = s.emailSender.SendVerificationEmail(asyncCtx, &models.EmailVerificationMessage{
+		Email:    newEmail,
+		Code:     code,
+		Username: username,
+	})
+
+	if err != nil {
+		log.Error("kafka error", "email", newEmail, logging.Err(err))
+	} else {
+		log.Info("kafka verification message sent", "email", newEmail)
+	}
+
+	return &pb.ChangeEmailResponse{}, nil
 }
