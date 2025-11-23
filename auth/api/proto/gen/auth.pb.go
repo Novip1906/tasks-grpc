@@ -405,6 +405,86 @@ func (*ValidateCodeResponse) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{7}
 }
 
+type ChangeEmailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewEmail      string                 `protobuf:"bytes,1,opt,name=newEmail,proto3" json:"newEmail,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangeEmailRequest) Reset() {
+	*x = ChangeEmailRequest{}
+	mi := &file_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangeEmailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangeEmailRequest) ProtoMessage() {}
+
+func (x *ChangeEmailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangeEmailRequest.ProtoReflect.Descriptor instead.
+func (*ChangeEmailRequest) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ChangeEmailRequest) GetNewEmail() string {
+	if x != nil {
+		return x.NewEmail
+	}
+	return ""
+}
+
+type ChangeEmailResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangeEmailResponse) Reset() {
+	*x = ChangeEmailResponse{}
+	mi := &file_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangeEmailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangeEmailResponse) ProtoMessage() {}
+
+func (x *ChangeEmailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangeEmailResponse.ProtoReflect.Descriptor instead.
+func (*ChangeEmailResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{9}
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -430,12 +510,16 @@ const file_auth_proto_rawDesc = "" +
 	"\x13ValidateCodeRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\"\x16\n" +
-	"\x14ValidateCodeResponse2\x97\x02\n" +
+	"\x14ValidateCodeResponse\"0\n" +
+	"\x12ChangeEmailRequest\x12\x1a\n" +
+	"\bnewEmail\x18\x01 \x01(\tR\bnewEmail\"\x15\n" +
+	"\x13ChangeEmailResponse2\xdb\x02\n" +
 	"\vAuthService\x120\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x13.auth.LoginResponse\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12H\n" +
 	"\rValidateToken\x12\x1a.auth.ValidateTokenRequest\x1a\x1b.auth.ValidateTokenResponse\x12Q\n" +
-	"\x18ValidateVerificationCode\x12\x19.auth.ValidateCodeRequest\x1a\x1a.auth.ValidateCodeResponseB*Z(github.com/Novip1906/tasks-grpc/auth/genb\x06proto3"
+	"\x18ValidateVerificationCode\x12\x19.auth.ValidateCodeRequest\x1a\x1a.auth.ValidateCodeResponse\x12B\n" +
+	"\vChangeEmail\x12\x18.auth.ChangeEmailRequest\x1a\x19.auth.ChangeEmailResponseB*Z(github.com/Novip1906/tasks-grpc/auth/genb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -449,7 +533,7 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_auth_proto_goTypes = []any{
 	(*LoginRequest)(nil),          // 0: auth.LoginRequest
 	(*LoginResponse)(nil),         // 1: auth.LoginResponse
@@ -459,18 +543,22 @@ var file_auth_proto_goTypes = []any{
 	(*ValidateTokenResponse)(nil), // 5: auth.ValidateTokenResponse
 	(*ValidateCodeRequest)(nil),   // 6: auth.ValidateCodeRequest
 	(*ValidateCodeResponse)(nil),  // 7: auth.ValidateCodeResponse
+	(*ChangeEmailRequest)(nil),    // 8: auth.ChangeEmailRequest
+	(*ChangeEmailResponse)(nil),   // 9: auth.ChangeEmailResponse
 }
 var file_auth_proto_depIdxs = []int32{
 	0, // 0: auth.AuthService.Login:input_type -> auth.LoginRequest
 	2, // 1: auth.AuthService.Register:input_type -> auth.RegisterRequest
 	4, // 2: auth.AuthService.ValidateToken:input_type -> auth.ValidateTokenRequest
 	6, // 3: auth.AuthService.ValidateVerificationCode:input_type -> auth.ValidateCodeRequest
-	1, // 4: auth.AuthService.Login:output_type -> auth.LoginResponse
-	3, // 5: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	5, // 6: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
-	7, // 7: auth.AuthService.ValidateVerificationCode:output_type -> auth.ValidateCodeResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	8, // 4: auth.AuthService.ChangeEmail:input_type -> auth.ChangeEmailRequest
+	1, // 5: auth.AuthService.Login:output_type -> auth.LoginResponse
+	3, // 6: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	5, // 7: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
+	7, // 8: auth.AuthService.ValidateVerificationCode:output_type -> auth.ValidateCodeResponse
+	9, // 9: auth.AuthService.ChangeEmail:output_type -> auth.ChangeEmailResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -487,7 +575,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

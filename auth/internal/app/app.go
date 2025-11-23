@@ -23,10 +23,6 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config, log *slog.Logger) *Server {
-	gs := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.LoggingInterceptor(log)),
-	)
-
 	p := cfg.UserDb
 	userDb, err := storage.NewPostgresStorage(p.Host, p.Port, p.User, p.Password, p.DBName, log)
 	if err != nil {
@@ -39,6 +35,13 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 	emailVerificationProducer := kafka.NewEmailProducer(kafkaProcuder, cfg.Kafka.VerificationTopic)
 
 	authService := service.NewAuthService(cfg, log, userDb, codesDb, emailVerificationProducer)
+
+	gs := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interceptors.LoggingInterceptor(log),
+			interceptors.AuthUnaryInterceptor(*authService, log),
+		),
+	)
 
 	return &Server{cfg: cfg, gs: gs, authService: authService, log: log}
 }
