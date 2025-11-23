@@ -22,7 +22,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	srv := app.NewServer(cfg, log)
+	srv, err := app.NewServer(cfg, log)
+
+	if err != nil {
+		log.Error("error creating server", logging.Err(err))
+		return
+	}
 
 	log.Info("starting server")
 	if err := srv.Run(ctx); err != nil {
