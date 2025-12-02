@@ -2,14 +2,42 @@ syntax = "proto3";
 
 package tasks;
 
+import "google/api/annotations.proto";
+
 option go_package = "github.com/Novip1906/tasks-grpc/tasks/gen";
 
 service TasksService {
-    rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
-    rpc GetTask(GetTaskRequest) returns (Task);
-    rpc GetAllTasks(GetAllTasksRequest) returns (GetAllTasksResponse);
-    rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
-    rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+    rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse) {
+        option (google.api.http) = {
+            post: "/tasks"
+            body: "*"
+        };
+    }
+
+    rpc GetTask(GetTaskRequest) returns (Task) {
+        option (google.api.http) = {
+            get: "/tasks/{taskId}"
+        };
+    }
+
+    rpc GetAllTasks(GetAllTasksRequest) returns (GetAllTasksResponse) {
+        option (google.api.http) = {
+            get: "/tasks"
+        };
+    }
+
+    rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse) {
+        option (google.api.http) = {
+            put: "/tasks/{taskId}"
+            body: "*"
+        };
+    }
+
+    rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse) {
+        option (google.api.http) = {
+            delete: "/tasks/{taskId}"
+        };
+    }
 }
 
 message CreateTaskRequest {
@@ -55,5 +83,8 @@ message DeleteTaskRequest {
 message DeleteTaskResponse {
     Task task = 1;
 }
-// export PATH=$PATH:$(go env GOPATH)/bin
-// protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative tasks.proto
+// protoc -I . -I third_party/googleapis \
+//   --go_out=. --go_opt=paths=source_relative \
+//   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+//   --grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
+//   auth.proto

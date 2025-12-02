@@ -7,6 +7,7 @@
 package gen
 
 import (
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -481,7 +482,7 @@ var File_tasks_proto protoreflect.FileDescriptor
 
 const file_tasks_proto_rawDesc = "" +
 	"\n" +
-	"\vtasks.proto\x12\x05tasks\"'\n" +
+	"\vtasks.proto\x12\x05tasks\x1a\x1cgoogle/api/annotations.proto\"'\n" +
 	"\x11CreateTaskRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"5\n" +
 	"\x12CreateTaskResponse\x12\x1f\n" +
@@ -505,16 +506,16 @@ const file_tasks_proto_rawDesc = "" +
 	"\x11DeleteTaskRequest\x12\x16\n" +
 	"\x06taskId\x18\x01 \x01(\x03R\x06taskId\"5\n" +
 	"\x12DeleteTaskResponse\x12\x1f\n" +
-	"\x04task\x18\x01 \x01(\v2\v.tasks.TaskR\x04task2\xcc\x02\n" +
-	"\fTasksService\x12A\n" +
+	"\x04task\x18\x01 \x01(\v2\v.tasks.TaskR\x04task2\xbd\x03\n" +
+	"\fTasksService\x12T\n" +
 	"\n" +
-	"CreateTask\x12\x18.tasks.CreateTaskRequest\x1a\x19.tasks.CreateTaskResponse\x12-\n" +
-	"\aGetTask\x12\x15.tasks.GetTaskRequest\x1a\v.tasks.Task\x12D\n" +
-	"\vGetAllTasks\x12\x19.tasks.GetAllTasksRequest\x1a\x1a.tasks.GetAllTasksResponse\x12A\n" +
+	"CreateTask\x12\x18.tasks.CreateTaskRequest\x1a\x19.tasks.CreateTaskResponse\"\x11\x82\xd3\xe4\x93\x02\v:\x01*\"\x06/tasks\x12F\n" +
+	"\aGetTask\x12\x15.tasks.GetTaskRequest\x1a\v.tasks.Task\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/tasks/{taskId}\x12T\n" +
+	"\vGetAllTasks\x12\x19.tasks.GetAllTasksRequest\x1a\x1a.tasks.GetAllTasksResponse\"\x0e\x82\xd3\xe4\x93\x02\b\x12\x06/tasks\x12]\n" +
 	"\n" +
-	"UpdateTask\x12\x18.tasks.UpdateTaskRequest\x1a\x19.tasks.UpdateTaskResponse\x12A\n" +
+	"UpdateTask\x12\x18.tasks.UpdateTaskRequest\x1a\x19.tasks.UpdateTaskResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\x1a\x0f/tasks/{taskId}\x12Z\n" +
 	"\n" +
-	"DeleteTask\x12\x18.tasks.DeleteTaskRequest\x1a\x19.tasks.DeleteTaskResponseB+Z)github.com/Novip1906/tasks-grpc/tasks/genb\x06proto3"
+	"DeleteTask\x12\x18.tasks.DeleteTaskRequest\x1a\x19.tasks.DeleteTaskResponse\"\x17\x82\xd3\xe4\x93\x02\x11*\x0f/tasks/{taskId}B+Z)github.com/Novip1906/tasks-grpc/tasks/genb\x06proto3"
 
 var (
 	file_tasks_proto_rawDescOnce sync.Once

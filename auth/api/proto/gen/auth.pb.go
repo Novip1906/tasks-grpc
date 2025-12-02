@@ -7,6 +7,7 @@
 package gen
 
 import (
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -490,7 +491,7 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\x04auth\"F\n" +
+	"auth.proto\x12\x04auth\x1a\x1cgoogle/api/annotations.proto\"F\n" +
 	"\fLoginRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"%\n" +
@@ -513,13 +514,13 @@ const file_auth_proto_rawDesc = "" +
 	"\x14ValidateCodeResponse\"0\n" +
 	"\x12ChangeEmailRequest\x12\x1a\n" +
 	"\bnewEmail\x18\x01 \x01(\tR\bnewEmail\"\x15\n" +
-	"\x13ChangeEmailResponse2\xdb\x02\n" +
-	"\vAuthService\x120\n" +
-	"\x05Login\x12\x12.auth.LoginRequest\x1a\x13.auth.LoginResponse\x129\n" +
-	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12H\n" +
-	"\rValidateToken\x12\x1a.auth.ValidateTokenRequest\x1a\x1b.auth.ValidateTokenResponse\x12Q\n" +
-	"\x18ValidateVerificationCode\x12\x19.auth.ValidateCodeRequest\x1a\x1a.auth.ValidateCodeResponse\x12B\n" +
-	"\vChangeEmail\x12\x18.auth.ChangeEmailRequest\x1a\x19.auth.ChangeEmailResponseB*Z(github.com/Novip1906/tasks-grpc/auth/genb\x06proto3"
+	"\x13ChangeEmailResponse2\xcd\x03\n" +
+	"\vAuthService\x12H\n" +
+	"\x05Login\x12\x12.auth.LoginRequest\x1a\x13.auth.LoginResponse\"\x16\x82\xd3\xe4\x93\x02\x10:\x01*\"\v/auth/login\x12T\n" +
+	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/auth/register\x12H\n" +
+	"\rValidateToken\x12\x1a.auth.ValidateTokenRequest\x1a\x1b.auth.ValidateTokenResponse\x12q\n" +
+	"\x18ValidateVerificationCode\x12\x19.auth.ValidateCodeRequest\x1a\x1a.auth.ValidateCodeResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/auth/validate-code\x12a\n" +
+	"\vChangeEmail\x12\x18.auth.ChangeEmailRequest\x1a\x19.auth.ChangeEmailResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/auth/change-emailB*Z(github.com/Novip1906/tasks-grpc/auth/genb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
