@@ -1,0 +1,3 @@
+address: :8080
+auth-address: auth:50050
+tasks-address: tasks:50051

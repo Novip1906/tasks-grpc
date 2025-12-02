@@ -1,4 +1,16 @@
 services:
+  gateway:
+    build:
+      context: ./gateway
+    environment:
+      - CONFIG_PATH=./configs/config.dev.yaml
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    depends_on:
+      - auth
+      - tasks
   auth:
     build:
       context: ./auth
