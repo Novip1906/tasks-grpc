@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/Novip1906/tasks-grpc/notifications/internal/app"
 	"github.com/Novip1906/tasks-grpc/notifications/internal/config"
@@ -16,8 +15,6 @@ import (
 func main() {
 	cfg := config.MustLoadConfig()
 	log := logging.SetupLogger(slog.LevelDebug)
-
-	time.Sleep(40 * time.Second)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
