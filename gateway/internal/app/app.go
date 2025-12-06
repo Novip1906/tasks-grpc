@@ -4,7 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/Novip1906/tasks-grpc/gateway/internal/config"
 	"github.com/Novip1906/tasks-grpc/gateway/internal/middleware"
@@ -19,15 +23,13 @@ import (
 )
 
 type Server struct {
-	cfg        *config.Config
-	log        *slog.Logger
-	mux        *runtime.ServeMux
-	cancelFunc context.CancelFunc
+	cfg    *config.Config
+	log    *slog.Logger
+	server *http.Server
 }
 
-func NewServer(cfg *config.Config, log *slog.Logger) *Server {
+func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
 
 	mux := runtime.NewServeMux(
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
@@ -62,24 +64,67 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 		ctx, mux, cfg.AuthAddress, opts,
 	); err != nil {
 		log.Error("failed to register auth", logging.Err(err))
-		panic(err)
+		return nil, err
 	}
 
 	if err := taskspb.RegisterTasksServiceHandlerFromEndpoint(
 		ctx, mux, cfg.TasksAddress, opts,
 	); err != nil {
 		log.Error("failed to register tasks", logging.Err(err))
-		panic(err)
+		return nil, err
 	}
-	return &Server{log: log, cfg: cfg, mux: mux, cancelFunc: cancel}
+
+	handler := http.Handler(mux)
+	handler = middleware.LoggingMiddleware(log)(handler)
+
+	httpServer := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	return &Server{
+		cfg:    cfg,
+		log:    log,
+		server: httpServer,
+	}, nil
 }
 
 func (s *Server) Run() error {
-	defer s.cancelFunc()
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM)
 
-	handler := http.Handler(s.mux)
-	handler = middleware.LoggingMiddleware(s.log)(handler)
+	serverErr := make(chan error, 1)
+	go func() {
+		s.log.Info("starting server", slog.String("address", s.cfg.Address))
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErr <- err
+		}
+		close(serverErr)
+	}()
 
-	s.log.Info("starting server")
-	return http.ListenAndServe(s.cfg.Address, handler)
+	select {
+	case err := <-serverErr:
+		return err
+	case <-stopChan:
+		s.log.Info("received shutdown signal")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := s.server.Shutdown(ctx); err != nil {
+			s.log.Error("server shutdown failed", logging.Err(err))
+			s.server.Close()
+			return err
+		}
+
+		s.log.Info("server stopped gracefully")
+		return nil
+	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.server.Shutdown(ctx)
 }

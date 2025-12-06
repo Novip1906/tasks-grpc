@@ -7,6 +7,6 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -v -o ./tasks ./cmd/tasks/main.go
+RUN go build -v -o ./app ./cmd/tasks/main.go
 
-CMD ["./tasks"]
+CMD ["./app"]
