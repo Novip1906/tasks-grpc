@@ -14,10 +14,7 @@ type Config struct {
 }
 
 func MustLoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
+	godotenv.Load()
 
 	path := os.Getenv("CONFIG_PATH")
 	if path == "" {
