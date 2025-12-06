@@ -34,7 +34,7 @@
    git clone https://github.com/Novip1906/tasks-grpc.git
    cd tasks-grpc
 2. ### Изменить конфиг
-   - Создать .env в /notifications и записать туда пароль от почты (SMTP_PASSWORD=...)
+   - Создать .env и записать туда пароль от почты (SMTP_PASSWORD=...)
    - В /notifications/configs ввести остальные данные от почты
 3. ### Запустите инфраструктуру и сервисы:
     ```bash
