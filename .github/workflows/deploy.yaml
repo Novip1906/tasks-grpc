@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" > ${{ secrets.SERVER_PATH }}/notifications/.env
+            echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" > ${{ secrets.SERVER_PATH }}/.env
       - name: Run docker compose on server
         uses: appleboy/ssh-action@v1.0.3
         with:
