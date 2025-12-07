@@ -82,7 +82,7 @@ func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	rootMux.Handle("/swagger.yaml", http.FileServer(http.Dir("./swagger")))
 
 	rootMux.Handle("/docs/", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger.yaml"),
+		httpSwagger.URL("/swagger.yaml"),
 	))
 
 	handler := middleware.LoggingMiddleware(log)(rootMux)
