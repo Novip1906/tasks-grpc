@@ -14,6 +14,7 @@ import (
 	"github.com/Novip1906/tasks-grpc/gateway/internal/middleware"
 	"github.com/Novip1906/tasks-grpc/gateway/pkg/logging"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,8 +75,17 @@ func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		return nil, err
 	}
 
-	handler := http.Handler(mux)
-	handler = middleware.LoggingMiddleware(log)(handler)
+	rootMux := http.NewServeMux()
+
+	rootMux.Handle("/", mux)
+
+	rootMux.Handle("/swagger.yaml", http.FileServer(http.Dir("./swagger")))
+
+	rootMux.Handle("/docs/", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger.yaml"),
+	))
+
+	handler := middleware.LoggingMiddleware(log)(rootMux)
 
 	httpServer := &http.Server{
 		Addr:         cfg.Address,
