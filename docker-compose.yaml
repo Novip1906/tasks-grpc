@@ -15,7 +15,7 @@ services:
     build:
       context: ./auth
     environment:
-      - CONFIG_PATH=./configs/config.dev.yaml
+      - CONFIG_PATH=./configs/config.prod.yaml
     ports:
       - "50050:50050"
     networks:

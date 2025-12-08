@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Address string `yaml:"address" env-required:"true"`
+	Env     string `yaml:"env" env-default:"dev"`
 	SMTP    SMTP   `yaml:"smtp" env-required:"true"`
 	Kafka   Kafka  `yaml:"kafka" env-required:"true"`
 }
