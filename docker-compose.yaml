@@ -15,7 +15,7 @@ services:
     build:
       context: ./auth
     environment:
-      - CONFIG_PATH=./configs/config.prod.yaml
+      - CONFIG_PATH=./configs/config.dev.yaml
     ports:
       - "50050:50050"
     networks:
@@ -41,7 +41,7 @@ services:
     build:
       context: ./notifications
     environment:
-      - CONFIG_PATH=./configs/config.dev.yaml
+      - CONFIG_PATH=./configs/config.prod.yaml
       - SMTP_PASSWORD=${SMTP_PASSWORD}
     networks:
       - app-network
