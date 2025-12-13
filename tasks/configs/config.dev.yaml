@@ -14,3 +14,8 @@ kafka:
   brokers:
    - kafka:9092
   topic: events
+elasticsearch:
+  addresses:
+   - http://elasticsearch:9200
+  index: tasks
+  

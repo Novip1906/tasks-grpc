@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	TasksAddress string `yaml:"tasks_address" env-required:"true"`
-	AuthAddress  string `yaml:"auth_address" env-required:"true"`
-	Params       Params `yaml:"params" env-required:"true"`
-	DB           DB     `yaml:"db" env-required:"true"`
-	Kafka        Kafka  `yaml:"kafka" env-required:"true"`
+	TasksAddress  string        `yaml:"tasks_address" env-required:"true"`
+	AuthAddress   string        `yaml:"auth_address" env-required:"true"`
+	Params        Params        `yaml:"params" env-required:"true"`
+	DB            DB            `yaml:"db" env-required:"true"`
+	Kafka         Kafka         `yaml:"kafka" env-required:"true"`
+	Elasticsearch Elasticsearch `yaml:"elasticsearch"`
 }
 
 type Params struct {
@@ -35,6 +36,11 @@ type DB struct {
 type Kafka struct {
 	Brokers     []string `yaml:"brokers" env-required:"true"`
 	EventsTopic string   `yaml:"topic" env-required:"true"`
+}
+
+type Elasticsearch struct {
+	Addresses []string `yaml:"addresses" env-required:"true"`
+	Index     string   `yaml:"index" env-required:"true"`
 }
 
 func MustLoadConfig() *Config {

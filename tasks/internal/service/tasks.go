@@ -10,6 +10,7 @@ import (
 	pb "github.com/Novip1906/tasks-grpc/tasks/api/proto/gen"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/config"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/contextkeys"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/elasticsearch"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/models"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/storage"
 	"github.com/Novip1906/tasks-grpc/tasks/pkg/logging"
@@ -19,9 +20,9 @@ import (
 
 type TasksStorage interface {
 	CreateTask(userId int64, text string) (id int64, err error)
-	GetTask(userId int64, taskId int64) (*models.Task, error)
-	GetAllTasks(userId int64) ([]*models.Task, error)
-	UpdateTask(userId, taskId int64, newText string) (oldText string, err error)
+	GetTaskById(userId int64, taskId int64) (*models.Task, error)
+	GetAllUserTasks(userId int64) ([]*models.Task, error)
+	UpdateTask(userId, taskId int64, newText string) (oldTask *models.Task, err error)
 	DeleteTask(userId, taskId int64) (deletedTask *models.Task, err error)
 }
 
@@ -35,10 +36,11 @@ type TasksService struct {
 	log         *slog.Logger
 	db          TasksStorage
 	emailSender EmailSender
+	es          *elasticsearch.Client
 }
 
-func NewTasksService(config *config.Config, log *slog.Logger, db TasksStorage, emailSender EmailSender) *TasksService {
-	return &TasksService{cfg: config, log: log, db: db, emailSender: emailSender}
+func NewTasksService(config *config.Config, log *slog.Logger, db TasksStorage, emailSender EmailSender, esClient *elasticsearch.Client) *TasksService {
+	return &TasksService{cfg: config, log: log, db: db, emailSender: emailSender, es: esClient}
 }
 
 func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
@@ -72,6 +74,16 @@ func (s *TasksService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest
 		Text:       text,
 		AuthorName: tokenClaims.Username,
 		CreatedAt:  time.Now().Unix(),
+	}
+
+	if err := s.es.IndexTask(ctx, &models.Task{
+		Id:         task.Id,
+		Text:       task.Text,
+		AuthorName: task.AuthorName,
+		AuthorId:   tokenClaims.UserId,
+		CreatedAt:  time.Now(),
+	}); err != nil {
+		log.Error("es index error", logging.Err(err))
 	}
 
 	if tokenClaims.Email == "" {
@@ -109,7 +121,7 @@ func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb
 
 	log.Debug("attempt")
 
-	task, err := s.db.GetTask(tokenClaims.UserId, taskId)
+	task, err := s.db.GetTaskById(tokenClaims.UserId, taskId)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -132,6 +144,36 @@ func (s *TasksService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb
 
 }
 
+func (s *TasksService) SearchTask(ctx context.Context, req *pb.SearchTasksRequest) (*pb.SearchTasksResponse, error) {
+	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
+	if !ok {
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
+	}
+	log := contextkeys.GetLogger(ctx)
+
+	query := req.GetQuery()
+
+	log.Debug("search tasks attempt", "query", query)
+
+	tasks, err := s.es.Search(ctx, tokenClaims.UserId, query)
+	if err != nil {
+		log.Error("es search error", logging.Err(err))
+		return nil, status.Error(codes.Internal, ErrInternalMessage)
+	}
+
+	pbTasks := make([]*pb.Task, 0, len(tasks))
+	for _, t := range tasks {
+		pbTasks = append(pbTasks, &pb.Task{
+			Id:         t.Id,
+			Text:       t.Text,
+			AuthorName: t.AuthorName,
+			CreatedAt:  t.CreatedAt.Unix(),
+		})
+	}
+
+	return &pb.SearchTasksResponse{Tasks: pbTasks}, nil
+}
+
 func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksRequest) (*pb.GetAllTasksResponse, error) {
 	tokenClaims, ok := contextkeys.GetTokenClaims(ctx)
 	if !ok {
@@ -141,7 +183,7 @@ func (s *TasksService) GetAllTasks(ctx context.Context, req *pb.GetAllTasksReque
 
 	log.Debug("get all tasks attempt")
 
-	tasks, err := s.db.GetAllTasks(tokenClaims.UserId)
+	tasks, err := s.db.GetAllUserTasks(tokenClaims.UserId)
 	if err != nil {
 		log.Error("db error", logging.DbErr("GetAllTasks", err))
 		return nil, status.Error(codes.Internal, ErrInternalMessage)
@@ -181,7 +223,7 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidTextMessage)
 	}
 
-	oldText, err := s.db.UpdateTask(tokenClaims.UserId, taskId, newText)
+	oldTask, err := s.db.UpdateTask(tokenClaims.UserId, taskId, newText)
 	if errors.Is(err, storage.ErrTaskNotFound) {
 		log.Error("task not found", logging.Err(err))
 		return nil, status.Error(codes.NotFound, ErrTaskNotFoundMessage)
@@ -197,6 +239,10 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 
 	log.Info("task updated")
 
+	if err := s.es.IndexTask(ctx, oldTask); err != nil {
+		log.Error("es index error", logging.Err(err))
+	}
+
 	if tokenClaims.Email == "" {
 		return &pb.UpdateTaskResponse{}, nil
 	}
@@ -209,7 +255,7 @@ func (s *TasksService) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest
 		Username:    tokenClaims.Username,
 		Type:        "update",
 		TaskText:    newText,
-		TaskOldText: oldText,
+		TaskOldText: oldTask.Text,
 	})
 
 	if err != nil {
@@ -253,6 +299,10 @@ func (s *TasksService) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest
 		Text:       task.Text,
 		AuthorName: task.AuthorName,
 		CreatedAt:  task.CreatedAt.Unix(),
+	}
+
+	if err := s.es.DeleteTask(ctx, task.Id); err != nil {
+		log.Error("es delete error", logging.Err(err))
 	}
 
 	if tokenClaims.Email != "" {

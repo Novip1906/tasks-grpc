@@ -60,19 +60,16 @@ func (s *PostgresStorage) CreateTask(userId int64, text string) (id int64, err e
 	return id, nil
 }
 
-func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
+func (s *PostgresStorage) GetTaskById(userId, taskId int64) (*models.Task, error) {
 	query := `
         SELECT t.id, t.text, u.username, t.created_at, u.id
         FROM tasks t 
         JOIN users u ON t.author_id = u.id 
         WHERE t.id=$1`
 
-	var (
-		task         models.Task
-		userIdFromDB int64
-	)
+	var task models.Task
 
-	err := s.db.QueryRow(query, taskId).Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt, &userIdFromDB)
+	err := s.db.QueryRow(query, taskId).Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt, &task.AuthorId)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrTaskNotFound
 	}
@@ -80,16 +77,16 @@ func (s *PostgresStorage) GetTask(userId, taskId int64) (*models.Task, error) {
 		return nil, err
 	}
 
-	if userId != userIdFromDB {
+	if userId != task.AuthorId {
 		return nil, ErrNotTaskAuthor
 	}
 
 	return &task, nil
 }
 
-func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
+func (s *PostgresStorage) GetAllUserTasks(userId int64) ([]*models.Task, error) {
 	query := `
-	SELECT t.id, t.text, u.username, t.created_at
+	SELECT t.id, t.text, u.username, t.created_at, t.author_id
 	FROM tasks t 
 	JOIN users u ON t.author_id = u.id 
 	WHERE t.author_id=$1 
@@ -106,7 +103,7 @@ func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
 		var (
 			task models.Task
 		)
-		err := rows.Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt)
+		err := rows.Scan(&task.Id, &task.Text, &task.AuthorName, &task.CreatedAt, &task.AuthorId)
 		if err != nil {
 			return nil, err
 		}
@@ -120,27 +117,56 @@ func (s *PostgresStorage) GetAllTasks(userId int64) ([]*models.Task, error) {
 	return tasks, nil
 }
 
-func (s *PostgresStorage) UpdateTask(userId, taskId int64, newText string) (oldText string, err error) {
-	task, err := s.GetTask(userId, taskId)
+func (s *PostgresStorage) UpdateTask(userId, taskId int64, newText string) (*models.Task, error) {
+	task, err := s.GetTaskById(userId, taskId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if task.Text == newText {
-		return task.Text, nil
+		return task, nil
 	}
 
 	query := "UPDATE tasks SET text=$1 WHERE id=$2"
 	_, err = s.db.Exec(query, newText, taskId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return task.Text, nil
+	return task, nil
+}
+
+func (s *PostgresStorage) GetAllTasksForIndexing() ([]*models.Task, error) {
+	query := `
+	SELECT t.id, t.text, u.username, t.author_id, t.created_at
+	FROM tasks t
+	JOIN users u ON t.author_id = u.id`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []*models.Task
+	for rows.Next() {
+		var task models.Task
+		if err := rows.Scan(
+			&task.Id,
+			&task.Text,
+			&task.AuthorName,
+			&task.AuthorId,
+			&task.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &task)
+	}
+	return tasks, nil
 }
 
 func (s *PostgresStorage) DeleteTask(userId, taskId int64) (deletedTask *models.Task, err error) {
-	task, err := s.GetTask(userId, taskId)
+	task, err := s.GetTaskById(userId, taskId)
 	if err != nil {
 		return nil, err
 	}

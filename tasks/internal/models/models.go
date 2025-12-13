@@ -6,6 +6,7 @@ type Task struct {
 	Id         int64
 	Text       string
 	AuthorName string
+	AuthorId   int64
 	CreatedAt  time.Time
 }
 

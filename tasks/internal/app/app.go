@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 	tasksPb "github.com/Novip1906/tasks-grpc/tasks/api/proto/gen"
 	authPb "github.com/Novip1906/tasks-grpc/tasks/internal/auth_gen"
+	"github.com/Novip1906/tasks-grpc/tasks/internal/elasticsearch"
 	"github.com/Novip1906/tasks-grpc/tasks/internal/service"
 )
 
@@ -47,7 +49,19 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 
 	emailProducer := kafka.NewEmailProducer(&cfg.Kafka)
 
-	taskService := service.NewTasksService(cfg, log, db, emailProducer)
+	esClient, err := elasticsearch.NewClient(cfg.Elasticsearch.Addresses, cfg.Elasticsearch.Index, log)
+	if err != nil {
+		panic(err)
+	}
+
+	tasks, _ := db.GetAllTasksForIndexing()
+	for _, t := range tasks {
+		_ = esClient.IndexTask(context.Background(), t)
+	}
+
+	log.Debug("tasks indexing", "tasks", tasks)
+
+	taskService := service.NewTasksService(cfg, log, db, emailProducer, esClient)
 
 	return &Server{cfg: cfg, gs: gs, tasksService: taskService, log: log, emailProducer: emailProducer}
 }
