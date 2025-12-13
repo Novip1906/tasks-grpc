@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TasksService_CreateTask_FullMethodName  = "/tasks.TasksService/CreateTask"
 	TasksService_GetTask_FullMethodName     = "/tasks.TasksService/GetTask"
+	TasksService_SearchTask_FullMethodName  = "/tasks.TasksService/SearchTask"
 	TasksService_GetAllTasks_FullMethodName = "/tasks.TasksService/GetAllTasks"
 	TasksService_UpdateTask_FullMethodName  = "/tasks.TasksService/UpdateTask"
 	TasksService_DeleteTask_FullMethodName  = "/tasks.TasksService/DeleteTask"
@@ -32,6 +33,7 @@ const (
 type TasksServiceClient interface {
 	CreateTask(ctx context.Context, in *CreateTaskRequest, opts ...grpc.CallOption) (*CreateTaskResponse, error)
 	GetTask(ctx context.Context, in *GetTaskRequest, opts ...grpc.CallOption) (*Task, error)
+	SearchTask(ctx context.Context, in *SearchTasksRequest, opts ...grpc.CallOption) (*SearchTasksResponse, error)
 	GetAllTasks(ctx context.Context, in *GetAllTasksRequest, opts ...grpc.CallOption) (*GetAllTasksResponse, error)
 	UpdateTask(ctx context.Context, in *UpdateTaskRequest, opts ...grpc.CallOption) (*UpdateTaskResponse, error)
 	DeleteTask(ctx context.Context, in *DeleteTaskRequest, opts ...grpc.CallOption) (*DeleteTaskResponse, error)
@@ -59,6 +61,16 @@ func (c *tasksServiceClient) GetTask(ctx context.Context, in *GetTaskRequest, op
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Task)
 	err := c.cc.Invoke(ctx, TasksService_GetTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tasksServiceClient) SearchTask(ctx context.Context, in *SearchTasksRequest, opts ...grpc.CallOption) (*SearchTasksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchTasksResponse)
+	err := c.cc.Invoke(ctx, TasksService_SearchTask_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +113,7 @@ func (c *tasksServiceClient) DeleteTask(ctx context.Context, in *DeleteTaskReque
 type TasksServiceServer interface {
 	CreateTask(context.Context, *CreateTaskRequest) (*CreateTaskResponse, error)
 	GetTask(context.Context, *GetTaskRequest) (*Task, error)
+	SearchTask(context.Context, *SearchTasksRequest) (*SearchTasksResponse, error)
 	GetAllTasks(context.Context, *GetAllTasksRequest) (*GetAllTasksResponse, error)
 	UpdateTask(context.Context, *UpdateTaskRequest) (*UpdateTaskResponse, error)
 	DeleteTask(context.Context, *DeleteTaskRequest) (*DeleteTaskResponse, error)
@@ -119,6 +132,9 @@ func (UnimplementedTasksServiceServer) CreateTask(context.Context, *CreateTaskRe
 }
 func (UnimplementedTasksServiceServer) GetTask(context.Context, *GetTaskRequest) (*Task, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTask not implemented")
+}
+func (UnimplementedTasksServiceServer) SearchTask(context.Context, *SearchTasksRequest) (*SearchTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchTask not implemented")
 }
 func (UnimplementedTasksServiceServer) GetAllTasks(context.Context, *GetAllTasksRequest) (*GetAllTasksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllTasks not implemented")
@@ -182,6 +198,24 @@ func _TasksService_GetTask_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TasksServiceServer).GetTask(ctx, req.(*GetTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TasksService_SearchTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchTasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TasksServiceServer).SearchTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TasksService_SearchTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TasksServiceServer).SearchTask(ctx, req.(*SearchTasksRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -254,6 +288,10 @@ var TasksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTask",
 			Handler:    _TasksService_GetTask_Handler,
+		},
+		{
+			MethodName: "SearchTask",
+			Handler:    _TasksService_SearchTask_Handler,
 		},
 		{
 			MethodName: "GetAllTasks",
