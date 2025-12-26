@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log/slog"
 	"os"
 
 	"github.com/Novip1906/tasks-grpc/gateway/internal/app"
@@ -12,7 +11,7 @@ import (
 func main() {
 	cfg := config.MustLoadConfig()
 
-	log := logging.SetupLogger(slog.LevelDebug)
+	log := logging.SetupLogger(cfg.Env)
 
 	srv, err := app.NewServer(cfg, log)
 	if err != nil {
