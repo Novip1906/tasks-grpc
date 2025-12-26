@@ -1,0 +1,24 @@
+address: :50050
+env: prod
+jwt_secret_key: alskdlakdaskdoaskdo
+postgres:
+  host: postgres
+  port: 5432
+  user: postgres
+  password: pass
+  db_name: postgres
+redis:
+  address: redis:6379
+  password: ""
+params:
+  username:
+    min: 3
+    max: 10
+  password:
+    min: 3
+    max: 10
+code_exp: 15m
+kafka:
+  brokers:
+   - kafka:9092
+  topic: email-verification

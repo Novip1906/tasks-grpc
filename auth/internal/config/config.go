@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Address      string        `yaml:"address" env-required:"true"`
+	Env          string        `yaml:"env" env-default:"dev"`
 	JWTSecretKey string        `yaml:"jwt_secret_key" env-required:"true"`
 	UserDb       Postgres      `yaml:"postgres" env-required:"true"`
 	CodesDb      Redis         `yaml:"redis" env-required:"true"`
