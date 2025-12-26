@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Address      string `yaml:"address" env-default:":8080"`
+	Env          string `yaml:"env" env-default:"dev"`
 	AuthAddress  string `yaml:"auth-address" env-required:"true"`
 	TasksAddress string `yaml:"tasks-address" env-required:"true"`
 }

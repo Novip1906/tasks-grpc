@@ -3,7 +3,7 @@ services:
     build:
       context: ./gateway
     environment:
-      - CONFIG_PATH=./configs/config.dev.yaml
+      - CONFIG_PATH=./configs/config.prod.yaml
     ports:
       - "8080:8080"
     networks:
