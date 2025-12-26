@@ -10,6 +10,7 @@ import (
 type Config struct {
 	TasksAddress  string        `yaml:"tasks_address" env-required:"true"`
 	AuthAddress   string        `yaml:"auth_address" env-required:"true"`
+	Env           string        `yaml:"env" env-default:"dev"`
 	Params        Params        `yaml:"params" env-required:"true"`
 	DB            DB            `yaml:"db" env-required:"true"`
 	Kafka         Kafka         `yaml:"kafka" env-required:"true"`

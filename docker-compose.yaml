@@ -28,7 +28,7 @@ services:
     build:
       context: ./tasks
     environment:
-      - CONFIG_PATH=./configs/config.dev.yaml
+      - CONFIG_PATH=./configs/config.prod.yaml
     ports:
       - "50051:50051"
     networks:

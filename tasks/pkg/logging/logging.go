@@ -22,6 +22,16 @@ func DbErr(method string, err error) slog.Attr {
 	}
 }
 
-func SetupLogger(level slog.Level) *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+func SetupLogger(env string) *slog.Logger {
+	var handler slog.Handler
+	switch env {
+	case "dev":
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	case "prod":
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+	default:
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	}
+
+	return slog.New(handler)
 }

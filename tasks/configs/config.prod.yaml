@@ -1,0 +1,22 @@
+tasks_address: :50051
+auth_address: auth:50050
+env: prod
+params:
+  text:
+    min: 3
+    max: 100
+db:
+  host: postgres
+  port: 5432
+  user: postgres
+  password: pass
+  db_name: postgres
+kafka:
+  brokers:
+   - kafka:9092
+  topic: events
+elasticsearch:
+  addresses:
+   - http://elasticsearch:9200
+  index: tasks
+  
