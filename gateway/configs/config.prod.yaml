@@ -2,3 +2,6 @@ address: :8080
 env: prod
 auth-address: auth:50050
 tasks-address: tasks:50051
+redis:
+  address: redis:6379
+  password: ""
