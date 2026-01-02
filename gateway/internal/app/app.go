@@ -75,6 +75,8 @@ func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		return nil, err
 	}
 
+	rateLimiter := middleware.NewRateLimiter(ctx, log, &cfg.Redis, &cfg.RateLimiter)
+
 	rootMux := http.NewServeMux()
 
 	rootMux.Handle("/", mux)
@@ -85,7 +87,8 @@ func NewServer(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		httpSwagger.URL("/swagger.yaml"),
 	))
 
-	handler := middleware.LoggingMiddleware(log)(rootMux)
+	handler := rateLimiter.Middleware(log)(rootMux)
+	handler = middleware.LoggingMiddleware(log)(handler)
 
 	httpServer := &http.Server{
 		Addr:         cfg.Address,

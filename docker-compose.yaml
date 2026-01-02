@@ -11,6 +11,7 @@ services:
     depends_on:
       - auth
       - tasks
+      - redis
   auth:
     build:
       context: ./auth
