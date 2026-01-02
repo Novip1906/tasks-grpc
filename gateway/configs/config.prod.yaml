@@ -5,3 +5,6 @@ tasks-address: tasks:50051
 redis:
   address: redis:6379
   password: ""
+rate-limiter:
+  rps: 5
+  burst: 10
